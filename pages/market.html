@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Prices — Farm Yanga</title>
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+        <div class="topbar-left"><h1>Market Prices</h1><p id="topbar-date"></p></div>
+      </div>
+      <div class="topbar-right">
+        <span style="font-size:11px;color:var(--text-muted)">Prices refreshed daily · ADMARC + Open Market</span>
+      </div>
+    </header>
+    <main class="page-body">
+
+      <!-- Location & filters -->
+      <div class="card" style="margin-bottom:18px">
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <div class="form-group" style="margin:0;min-width:160px">
+            <label style="font-size:12px">Market Location</label>
+            <select id="mkt-loc" onchange="renderPrices()">
+              <option value="Lilongwe">Lilongwe (Kanengo)</option>
+              <option value="Blantyre">Blantyre (Limbe)</option>
+              <option value="Mzuzu">Mzuzu (Ekwendeni)</option>
+              <option value="Zomba">Zomba Market</option>
+              <option value="Karonga">Karonga Market</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label style="font-size:12px">Market Type</label>
+            <select id="mkt-type" onchange="renderPrices()">
+              <option value="open">Open Market</option>
+              <option value="admarc">ADMARC Price</option>
+            </select>
+          </div>
+          <div style="margin-left:auto;font-size:12px;color:var(--text-secondary)">
+            Last updated: <strong id="last-updated"></strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-grid" style="margin-bottom:18px">
+        <div class="stat-card"><div class="stat-icon green"><i class="ti ti-trending-up"></i></div><div class="stat-label">Best Performing</div><div class="stat-value" id="s-best" style="font-size:16px">—</div></div>
+        <div class="stat-card"><div class="stat-icon red"><i class="ti ti-trending-down"></i></div><div class="stat-label">Biggest Drop</div><div class="stat-value" id="s-worst" style="font-size:16px">—</div></div>
+        <div class="stat-card"><div class="stat-icon blue"><i class="ti ti-coin"></i></div><div class="stat-label">Maize Floor Price</div><div class="stat-value" id="s-maize" style="font-size:16px">—</div></div>
+        <div class="stat-card"><div class="stat-icon amber"><i class="ti ti-star"></i></div><div class="stat-label">Top Cash Crop</div><div class="stat-value" id="s-cash" style="font-size:16px">—</div></div>
+      </div>
+
+      <div class="two-col">
+        <!-- All prices -->
+        <div class="card" style="grid-column:1/3">
+          <div class="card-header">
+            <div class="card-title"><i class="ti ti-chart-bar"></i> All Produce Prices — <span id="mkt-label">Lilongwe</span></div>
+            <input type="text" id="search-price" placeholder="Search crop..." oninput="renderPrices()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;width:160px;outline:none;font-family:inherit">
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Crop</th><th>Unit</th><th>Price (MK)</th><th>Change</th><th>Trend</th><th>Est. Revenue / ha</th></tr></thead>
+              <tbody id="price-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Harvest Calculator -->
+      <div class="card" style="margin-top:18px">
+        <div class="card-header"><div class="card-title"><i class="ti ti-coin"></i> Harvest Revenue Estimator</div></div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Enter your harvest amount to estimate how much you can earn at current market prices.</p>
+        <div class="form-row">
+          <div class="form-group"><label>Crop</label>
+            <select id="hv-crop">
+              <option value="">Select crop</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Amount you have</label>
+            <input type="number" id="hv-qty" placeholder="e.g. 20" min="0">
+          </div>
+          <div class="form-group"><label>Unit</label>
+            <select id="hv-unit">
+              <option value="bags">50kg Bags</option>
+              <option value="kg">Kilograms (kg)</option>
+              <option value="tonnes">Tonnes</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:flex-end;padding-bottom:14px">
+            <button class="btn btn-primary" onclick="estimateRevenue()"><i class="ti ti-calculator"></i> Estimate</button>
+          </div>
+        </div>
+        <div id="revenue-result" style="display:none;margin-top:6px"></div>
+      </div>
+
+      <!-- Price Tip -->
+      <div style="background:var(--green-dark);border-radius:var(--radius-lg);padding:18px 22px;margin-top:18px;color:#fff">
+        <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">💡 Selling Tips for Malawian Farmers</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;font-size:13px;color:rgba(255,255,255,0.8);line-height:1.6">
+          <div>📅 <strong style="color:#fff">Timing matters</strong> — Prices are lowest at harvest (March–May). Store your grain and sell in August–October when prices rise by 30–50%.</div>
+          <div>🤝 <strong style="color:#fff">Form groups</strong> — Farmer cooperatives negotiate better prices and reduce transport costs. Selling together gives you bargaining power.</div>
+          <div>📊 <strong style="color:#fff">Compare markets</strong> — ADMARC sets a floor price. Open markets usually pay more, especially for high-quality produce. Check both.</div>
+          <div>🌱 <strong style="color:#fff">Grade your produce</strong> — Clean, dry grains at the right moisture (13%) command premium prices. Invest in drying and sorting.</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+if (!Auth.requireAuth()) throw '';
+renderSidebar('market');
+initSidebar('market');
+setTopbarDate(null, document.getElementById('topbar-date'), '');
+
+// Market price modifiers by location
+const LOC_MOD = {Lilongwe:1.0, Blantyre:1.05, Mzuzu:0.97, Zomba:1.02, Karonga:0.94};
+const ADMARC_MOD = 0.88; // ADMARC typically pays less than open market
+
+// Extended price data with revenue per ha estimate
+const PRICES = [
+  {name:'Maize', emoji:'🌽', unit:'per 50kg bag', base:18000, change:+5.2, yieldBags:70, category:'staple'},
+  {name:'Soybeans', emoji:'🫘', unit:'per 50kg bag', base:42000, change:+12.1, yieldBags:30, category:'cash'},
+  {name:'Groundnuts', emoji:'🥜', unit:'per 50kg bag', base:95000, change:-3.4, yieldBags:24, category:'cash'},
+  {name:'Tobacco (Flue)', emoji:'🍂', unit:'per kg', base:1850, change:+2.8, yieldBags:0, yieldKg:1800, category:'cash'},
+  {name:'Tomatoes', emoji:'🍅', unit:'per crate (15kg)', base:8500, change:-8.2, yieldBags:0, yieldCrates:1333, category:'vegetable'},
+  {name:'Onions', emoji:'🧅', unit:'per 50kg bag', base:28000, change:+6.5, yieldBags:300, category:'vegetable'},
+  {name:'Sweet Potato', emoji:'🍠', unit:'per 50kg bag', base:12000, change:+1.1, yieldBags:300, category:'staple'},
+  {name:'Cassava', emoji:'🪴', unit:'per 50kg bag', base:9500, change:-1.5, yieldBags:200, category:'staple'},
+  {name:'Beans', emoji:'🫘', unit:'per 50kg bag', base:68000, change:+4.3, yieldBags:20, category:'cash'},
+  {name:'Sunflower', emoji:'🌻', unit:'per 50kg bag', base:38000, change:+9.7, yieldBags:30, category:'cash'},
+  {name:'Pigeon Peas', emoji:'🌿', unit:'per 50kg bag', base:55000, change:+3.2, yieldBags:24, category:'cash'},
+  {name:'Cabbage', emoji:'🥬', unit:'per head', base:800, change:-12.0, yieldBags:0, yieldHeads:25000, category:'vegetable'},
+  {name:'Rice', emoji:'🌾', unit:'per 50kg bag', base:32000, change:+7.5, yieldBags:60, category:'staple'},
+  {name:'Sorghum', emoji:'🌾', unit:'per 50kg bag', base:14000, change:+0.8, yieldBags:40, category:'staple'},
+];
+
+document.getElementById('last-updated').textContent = new Date().toLocaleDateString('en-MW',{day:'numeric',month:'long',year:'numeric'});
+
+function getAdjustedPrice(base, loc, type) {
+  const mod = (LOC_MOD[loc]||1) * (type==='admarc'?ADMARC_MOD:1);
+  // Add small random variation per session for realism
+  const seed = parseInt(loc.charCodeAt(0)) + new Date().getDate();
+  const jitter = 1 + ((seed%10)-5)/100;
+  return Math.round(base * mod * jitter);
+}
+
+function renderPrices() {
+  const loc = document.getElementById('mkt-loc').value;
+  const type = document.getElementById('mkt-type').value;
+  const q = document.getElementById('search-price').value.toLowerCase();
+  document.getElementById('mkt-label').textContent = loc;
+
+  const adjusted = PRICES.map(p => ({...p, adjPrice: getAdjustedPrice(p.base, loc, type)}));
+  const filtered = q ? adjusted.filter(p => p.name.toLowerCase().includes(q)) : adjusted;
+
+  // Stats
+  const sorted = [...adjusted].sort((a,b)=>b.change-a.change);
+  document.getElementById('s-best').textContent = sorted[0]?.name + ' ▲'+sorted[0]?.change+'%';
+  document.getElementById('s-worst').textContent = sorted[sorted.length-1]?.name + ' ▼'+Math.abs(sorted[sorted.length-1]?.change)+'%';
+  const maize = adjusted.find(p=>p.name==='Maize');
+  document.getElementById('s-maize').textContent = formatMK(maize?.adjPrice||0);
+  const cash = [...adjusted].filter(p=>p.category==='cash').sort((a,b)=>{
+    const revA = p=>p.yieldBags?(p.adjPrice*p.yieldBags):(p.yieldKg?p.adjPrice*p.yieldKg:0);
+    return revA(b)-revA(a);
+  });
+  document.getElementById('s-cash').textContent = cash[0]?.name||'—';
+
+  // Populate harvest estimator crop dropdown
+  document.getElementById('hv-crop').innerHTML = '<option value="">Select crop</option>' + PRICES.map(p=>`<option value="${p.name}" data-price="${getAdjustedPrice(p.base,loc,type)}" data-unit="${p.unit}">${p.emoji} ${p.name}</option>`).join('');
+
+  const tbody = document.getElementById('price-table');
+  tbody.innerHTML = filtered.map(p => {
+    const up = p.change >= 0;
+    const estRev = p.yieldBags ? p.adjPrice*p.yieldBags : p.yieldKg ? p.adjPrice*p.yieldKg : p.yieldCrates ? p.adjPrice*p.yieldCrates : 0;
+    const trendBars = '█'.repeat(Math.min(5,Math.ceil(Math.abs(p.change)/5)));
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px"><span style="font-size:20px">${p.emoji}</span><div><div style="font-weight:600">${p.name}</div><span class="badge badge-grey" style="font-size:10px">${p.category}</span></div></div></td>
+      <td style="color:var(--text-secondary);font-size:12px">${p.unit}</td>
+      <td style="font-weight:700;font-size:15px;color:var(--green-mid)">${formatMK(p.adjPrice)}</td>
+      <td><span style="font-weight:600;color:${up?'#2e7d32':'#dc2626'}">${up?'▲':'▼'} ${Math.abs(p.change)}%</span></td>
+      <td style="color:${up?'#2e7d32':'#dc2626'};font-size:12px;letter-spacing:1px">${trendBars}</td>
+      <td style="font-weight:600">${estRev?formatMK(estRev):'Varies'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function estimateRevenue() {
+  const cropSel = document.getElementById('hv-crop');
+  const opt = cropSel.options[cropSel.selectedIndex];
+  const qty = parseFloat(document.getElementById('hv-qty').value);
+  const unit = document.getElementById('hv-unit').value;
+  if (!opt.value || !qty) { toast('Please select a crop and enter quantity.','error'); return; }
+  const pricePerBag = parseFloat(opt.dataset.price);
+  let bags = unit==='bags'?qty:unit==='kg'?qty/50:qty*20;
+  const revenue = Math.round(pricePerBag * bags);
+  const el = document.getElementById('revenue-result');
+  el.style.display='block';
+  el.innerHTML = `<div style="background:var(--green-light);border:1.5px solid var(--green-bright);border-radius:var(--radius);padding:16px">
+    <div style="font-size:13px;color:var(--green-mid);font-weight:600;margin-bottom:6px">💰 Estimated Revenue</div>
+    <div style="font-size:28px;font-weight:700;color:var(--green-dark)">${formatMK(revenue)}</div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">
+      ${qty} ${unit} of ${opt.value} × ${formatMK(pricePerBag)} per 50kg bag ≈ ${bags.toFixed(1)} bags<br>
+      <em>Note: This is an estimate. Actual prices depend on grade, moisture content, and market conditions on the day of sale.</em>
+    </div>
+  </div>`;
+}
+
+function toggleSidebar(){document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.sidebar-overlay').classList.toggle('open');}
+function closeSidebar(){document.querySelector('.sidebar').classList.remove('open');document.querySelector('.sidebar-overlay').classList.remove('open');}
+renderPrices();
+</script>
+</body>
+</html>

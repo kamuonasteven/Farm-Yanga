@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equipment — Farm Yanga</title>
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+        <div class="topbar-left"><h1>Farm Equipment</h1><p id="topbar-date"></p></div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary btn-sm" onclick="openModal()"><i class="ti ti-plus"></i> Add Equipment</button>
+      </div>
+    </header>
+    <main class="page-body">
+      <div class="stats-grid" style="margin-bottom:18px">
+        <div class="stat-card"><div class="stat-icon blue"><i class="ti ti-tractor"></i></div><div class="stat-label">Total Items</div><div class="stat-value" id="s-total">0</div></div>
+        <div class="stat-card"><div class="stat-icon green"><i class="ti ti-check"></i></div><div class="stat-label">Good Condition</div><div class="stat-value" id="s-good">0</div></div>
+        <div class="stat-card"><div class="stat-icon amber"><i class="ti ti-tool"></i></div><div class="stat-label">Needs Service</div><div class="stat-value" id="s-service">0</div></div>
+        <div class="stat-card"><div class="stat-icon amber"><i class="ti ti-coin"></i></div><div class="stat-label">Total Value</div><div class="stat-value" id="s-value">MK 0</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-tractor"></i> Equipment Inventory</div>
+        </div>
+        <div id="equip-list"></div>
+        <div id="equip-empty" class="empty-state hidden"><i class="ti ti-tractor"></i><h3>No equipment recorded</h3><p>Add your tractors, tools, and machinery to keep track</p><button class="btn btn-primary btn-sm" onclick="openModal()">Add Equipment</button></div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="modal-overlay hidden" id="eq-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="eq-modal-title">Add Equipment</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Equipment Name *</label><input type="text" id="eq-name" placeholder="e.g. Ox Plough, Sprayer, Tractor"></div>
+      <div class="form-group"><label>Type *</label>
+        <select id="eq-type">
+          <option value="">Select type</option>
+          <option>Tractor</option><option>Ox Plough</option><option>Sprayer</option>
+          <option>Irrigation Pump</option><option>Planter</option><option>Harvester</option>
+          <option>Hand Tool</option><option>Storage</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Condition</label>
+        <select id="eq-cond">
+          <option value="Good">Good</option>
+          <option value="Fair">Fair</option>
+          <option value="Needs Service">Needs Service</option>
+          <option value="Under Repair">Under Repair</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Estimated Value (MK)</label><input type="number" id="eq-value" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Purchase / Acquisition Date</label><input type="date" id="eq-date"></div>
+      <div class="form-group"><label>Last Service Date</label><input type="date" id="eq-service"></div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="eq-notes" placeholder="e.g. Owned, Rented, any issues or details..."></textarea></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEquip()"><i class="ti ti-check"></i> Save</button>
+    </div>
+  </div>
+</div>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+if (!Auth.requireAuth()) throw '';
+renderSidebar('equipment');
+initSidebar('equipment');
+setTopbarDate(null, document.getElementById('topbar-date'), '');
+let editId=null;
+const typeIcons={Tractor:'🚜',Sprayer:'💦','Ox Plough':'🐂','Irrigation Pump':'⚙️',Planter:'🌱',Harvester:'⚙️','Hand Tool':'🔧',Storage:'🏚️',Other:'🔩'};
+const condColors={'Good':'badge-green','Fair':'badge-amber','Needs Service':'badge-red','Under Repair':'badge-red'};
+
+function render(){
+  const items=getUserData('equipment');
+  const good=items.filter(i=>i.condition==='Good').length;
+  const service=items.filter(i=>['Needs Service','Under Repair'].includes(i.condition)).length;
+  const value=items.reduce((s,i)=>s+(Number(i.value)||0),0);
+  document.getElementById('s-total').textContent=items.length;
+  document.getElementById('s-good').textContent=good;
+  document.getElementById('s-service').textContent=service;
+  document.getElementById('s-value').textContent=formatMK(value);
+  const list=document.getElementById('equip-list');
+  const empty=document.getElementById('equip-empty');
+  if(!items.length){list.innerHTML='';empty.classList.remove('hidden');return;}
+  empty.classList.add('hidden');
+  list.innerHTML=items.map(item=>`
+    <div class="equip-item">
+      <div class="equip-icon">${typeIcons[item.type]||'🔩'}</div>
+      <div>
+        <div class="equip-name">${item.name}</div>
+        <div class="equip-detail">${item.type||''}${item.date?' · Acquired '+item.date:''}${item.lastService?' · Last service: '+item.lastService:''}</div>
+        ${item.notes?`<div class="equip-detail" style="margin-top:2px;font-style:italic">${item.notes}</div>`:''}
+      </div>
+      <span class="badge ${condColors[item.condition]||'badge-grey'}" style="margin-right:8px">${item.condition||'Unknown'}</span>
+      ${item.value?`<div style="font-size:12px;font-weight:700;color:#2e7d32;margin-right:8px;white-space:nowrap">${formatMK(item.value)}</div>`:''}
+      <div class="equip-actions">
+        <button class="btn btn-ghost btn-sm" onclick="edit('${item.id}')"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="del('${item.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`).join('');
+}
+
+function openModal(id){
+  editId=id||null;
+  document.getElementById('eq-modal-title').textContent=editId?'Edit Equipment':'Add Equipment';
+  if(!editId){['eq-name','eq-type','eq-value','eq-date','eq-service','eq-notes'].forEach(i=>document.getElementById(i).value='');document.getElementById('eq-cond').value='Good';}
+  else{const item=getUserData('equipment').find(i=>i.id===editId);if(item){document.getElementById('eq-name').value=item.name;document.getElementById('eq-type').value=item.type;document.getElementById('eq-cond').value=item.condition;document.getElementById('eq-value').value=item.value||'';document.getElementById('eq-date').value=item.date||'';document.getElementById('eq-service').value=item.lastService||'';document.getElementById('eq-notes').value=item.notes||'';}}
+  document.getElementById('eq-modal').classList.remove('hidden');
+}
+function closeModal(){document.getElementById('eq-modal').classList.add('hidden');editId=null;}
+function saveEquip(){
+  const name=document.getElementById('eq-name').value.trim(),type=document.getElementById('eq-type').value;
+  if(!name||!type){toast('Please enter name and type.','error');return;}
+  const entry={id:editId||'e_'+Date.now(),name,type,condition:document.getElementById('eq-cond').value,value:Number(document.getElementById('eq-value').value)||0,date:document.getElementById('eq-date').value,lastService:document.getElementById('eq-service').value,notes:document.getElementById('eq-notes').value};
+  let items=getUserData('equipment');
+  if(editId){items=items.map(i=>i.id===editId?entry:i);toast('Equipment updated!');}
+  else{items.push(entry);toast('Equipment added! ✓');}
+  saveUserData('equipment',items);closeModal();render();
+}
+function edit(id){openModal(id);}
+function del(id){if(!confirm('Remove this equipment?'))return;saveUserData('equipment',getUserData('equipment').filter(i=>i.id!==id));toast('Removed.','warning');render();}
+function toggleSidebar(){document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.sidebar-overlay').classList.toggle('open');}
+function closeSidebar(){document.querySelector('.sidebar').classList.remove('open');document.querySelector('.sidebar-overlay').classList.remove('open');}
+render();
+</script>
+</body>
+</html>

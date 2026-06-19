@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Farm Yanga</title>
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" id="hamburger" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+        <div class="topbar-left"><h1 id="topbar-title">Dashboard</h1><p id="topbar-date"></p></div>
+      </div>
+      <div class="topbar-right">
+        <div id="season-badge" class="badge badge-green" style="font-size:12px"></div>
+        <button class="btn btn-primary btn-sm" onclick="window.location.href='activities.html'"><i class="ti ti-plus"></i> Log Activity</button>
+      </div>
+    </header>
+    <main class="page-body">
+      <!-- Weather Strip -->
+      <div id="weather-strip" class="weather-strip">
+        <div class="weather-main">
+          <div class="weather-big-icon" id="w-icon">☀️</div>
+          <div>
+            <div class="weather-temp" id="w-temp">--°C</div>
+            <div class="weather-desc" id="w-desc">Loading...</div>
+            <div class="weather-loc" id="w-loc"><i class="ti ti-map-pin" style="font-size:11px"></i> <span>Malawi</span></div>
+          </div>
+        </div>
+        <div class="weather-extras">
+          <div class="w-extra"><div class="w-extra-val" id="w-hum">--%</div><div class="w-extra-lbl">Humidity</div></div>
+          <div class="w-extra"><div class="w-extra-val" id="w-wind">-- km/h</div><div class="w-extra-lbl">Wind</div></div>
+          <div class="w-extra"><div class="w-extra-val" id="w-feels">--°C</div><div class="w-extra-lbl">Feels Like</div></div>
+        </div>
+        <div class="weather-advice">
+          <div class="weather-advice-label">🌾 Farming Advice</div>
+          <div class="weather-advice-text" id="w-advice">Loading seasonal advice...</div>
+        </div>
+      </div>
+
+      <!-- 7-Day Forecast -->
+      <div class="forecast-strip" id="forecast-strip"></div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="stat-icon green"><i class="ti ti-plant"></i></div><div class="stat-label">Active Crops</div><div class="stat-value" id="s-crops">0</div><div class="stat-sub">crops being grown</div></div>
+        <div class="stat-card"><div class="stat-icon amber"><i class="ti ti-coin"></i></div><div class="stat-label">Total Costs YTD</div><div class="stat-value" id="s-costs">MK 0</div><div class="stat-sub">this farming year</div></div>
+        <div class="stat-card"><div class="stat-icon blue"><i class="ti ti-notes"></i></div><div class="stat-label">Activities Logged</div><div class="stat-value" id="s-acts">0</div><div class="stat-sub">farm activities</div></div>
+        <div class="stat-card"><div class="stat-icon red"><i class="ti ti-tractor"></i></div><div class="stat-label">Equipment</div><div class="stat-value" id="s-equip">0</div><div class="stat-sub">items on record</div></div>
+      </div>
+
+      <div class="two-col">
+        <!-- My Crops -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="ti ti-plant"></i> My Crops</div>
+            <a href="crops.html" class="btn btn-sm btn-ghost">Manage <i class="ti ti-arrow-right"></i></a>
+          </div>
+          <div id="crops-list"></div>
+        </div>
+
+        <!-- Market Prices -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="ti ti-chart-bar"></i> Today's Market Prices</div>
+            <a href="market.html" class="btn btn-sm btn-ghost">All prices <i class="ti ti-arrow-right"></i></a>
+          </div>
+          <div id="prices-list"></div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <!-- Recent Activities -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="ti ti-notes"></i> Recent Activities</div>
+            <a href="activities.html" class="btn btn-sm btn-ghost">View all <i class="ti ti-arrow-right"></i></a>
+          </div>
+          <div id="activities-list"></div>
+        </div>
+
+        <!-- Upcoming Events -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="ti ti-calendar"></i> Upcoming Events</div>
+            <a href="calendar.html" class="btn btn-sm btn-ghost">Calendar <i class="ti ti-arrow-right"></i></a>
+          </div>
+          <div id="events-list"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+if (!Auth.requireAuth()) throw '';
+renderSidebar('dashboard');
+initSidebar('dashboard');
+setTopbarDate(document.getElementById('topbar-title'), document.getElementById('topbar-date'), 'Dashboard');
+
+const user = Auth.currentUser();
+
+// Season badge
+const season = getMalawiSeason();
+document.getElementById('season-badge').textContent = '🌿 ' + season.name;
+
+// Weather
+const wx = getSimulatedWeather(user.location);
+document.getElementById('w-icon').textContent = wx.icon;
+document.getElementById('w-temp').textContent = wx.temp + '°C';
+document.getElementById('w-desc').textContent = wx.description;
+document.getElementById('w-loc').querySelector('span').textContent = wx.location + ', Malawi';
+document.getElementById('w-hum').textContent = wx.humidity + '%';
+document.getElementById('w-wind').textContent = wx.wind + ' km/h';
+document.getElementById('w-feels').textContent = wx.feels + '°C';
+document.getElementById('w-advice').textContent = getFarmingAdvice(season, user.crops);
+
+// Forecast
+document.getElementById('forecast-strip').innerHTML = wx.forecast.map((d,i) => `
+  <div class="fc-card ${i===0?'today':''}">
+    <div class="fc-day-lbl">${d.day}</div>
+    <div class="fc-icon">${d.icon}</div>
+    <div class="fc-temp">${d.temp}°C</div>
+    <div class="fc-rain">${d.rain}% rain</div>
+  </div>`).join('');
+
+// Stats
+const activities = getUserData('activities');
+const costs = getUserData('costs');
+const equipment = getUserData('equipment');
+const crops = user.crops || [];
+document.getElementById('s-crops').textContent = crops.length;
+document.getElementById('s-acts').textContent = activities.length;
+document.getElementById('s-equip').textContent = equipment.length;
+const totalCosts = costs.reduce((s,c) => s + (Number(c.amount)||0), 0);
+document.getElementById('s-costs').textContent = formatMK(totalCosts);
+
+// Crops list
+const cropEmojis = {Maize:'🌽',Soybeans:'🫘',Groundnuts:'🥜',Tobacco:'🍂',Tomatoes:'🍅',Onions:'🧅','Sweet Potato':'🍠',Cassava:'🪴',Beans:'🫘',Sunflower:'🌻',Cabbage:'🥬',Rice:'🌾',Pumpkin:'🧡','Pigeon Peas':'🌿',Carrots:'🥕',Sorghum:'🌾'};
+const cropsList = document.getElementById('crops-list');
+if (!crops.length) {
+  cropsList.innerHTML = '<div class="empty-state"><i class="ti ti-plant"></i><h3>No crops added</h3><p>Add crops to track your farming season</p><a href="crops.html" class="btn btn-primary btn-sm">Add Crops</a></div>';
+} else {
+  cropsList.innerHTML = crops.slice(0,5).map(c => `
+    <div class="activity-item">
+      <span style="font-size:22px">${cropEmojis[c]||'🌱'}</span>
+      <div><div class="act-text" style="font-weight:600">${c}</div><div class="act-meta">${season.name} crop</div></div>
+      <span class="badge badge-green" style="margin-left:auto">Growing</span>
+    </div>`).join('') + (crops.length>5?`<div style="text-align:center;padding:10px 0"><a href="crops.html" style="color:#2e7d32;font-size:12px;font-weight:600">+${crops.length-5} more crops →</a></div>`:'');
+}
+
+// Prices
+const pricesList = document.getElementById('prices-list');
+pricesList.innerHTML = MARKET_PRICES.slice(0,5).map(p => {
+  const up = p.change >= 0;
+  return `<div class="price-row">
+    <div class="price-left"><div class="price-em">${p.emoji}</div><div><div class="price-name">${p.name}</div><div class="price-unit">${p.unit}</div></div></div>
+    <div style="text-align:right"><div class="price-amount">${formatMK(p.base)}</div><div class="price-change ${up?'price-up':'price-down'}">${up?'▲':'▼'} ${Math.abs(p.change)}%</div></div>
+  </div>`;
+}).join('');
+
+// Activities
+const actList = document.getElementById('activities-list');
+if (!activities.length) {
+  actList.innerHTML = '<div class="empty-state"><i class="ti ti-notes"></i><h3>No activities yet</h3><p>Start logging your farm work</p><a href="activities.html" class="btn btn-primary btn-sm">Log Activity</a></div>';
+} else {
+  const colors = ['dot-green','dot-amber','dot-blue','dot-red'];
+  actList.innerHTML = activities.slice(-5).reverse().map((a,i) => `
+    <div class="activity-item">
+      <div class="act-dot ${colors[i%4]}"></div>
+      <div><div class="act-text">${a.activity} — ${a.crop||'General'}</div><div class="act-meta">${a.date} · ${a.cost?formatMK(a.cost)+' spent':a.notes||''}</div></div>
+    </div>`).join('');
+}
+
+// Calendar events
+const events = getUserData('events');
+const now = new Date();
+const upcoming = events.filter(e => new Date(e.date) >= now).sort((a,b) => new Date(a.date)-new Date(b.date)).slice(0,4);
+const evList = document.getElementById('events-list');
+if (!upcoming.length) {
+  evList.innerHTML = '<div class="empty-state"><i class="ti ti-calendar"></i><h3>No upcoming events</h3><p>Add events to your farm calendar</p><a href="calendar.html" class="btn btn-primary btn-sm">Open Calendar</a></div>';
+} else {
+  evList.innerHTML = upcoming.map(e => `
+    <div class="event-item ${e.color||''}">
+      <div><div class="event-date-lbl">${e.date}</div></div>
+      <div><div class="event-title">${e.title}</div><div class="event-desc">${e.desc||''}</div></div>
+    </div>`).join('');
+}
+
+function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('open'); document.querySelector('.sidebar-overlay').classList.toggle('open'); }
+function closeSidebar() { document.querySelector('.sidebar').classList.remove('open'); document.querySelector('.sidebar-overlay').classList.remove('open'); }
+</script>
+</body>
+</html>

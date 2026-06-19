@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farm Notes — Farm Yanga</title>
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+        <div class="topbar-left"><h1>Farm Notes</h1><p id="topbar-date"></p></div>
+      </div>
+      <div class="topbar-right">
+        <input type="text" id="search-notes" placeholder="Search notes..." style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;width:200px;outline:none;font-family:inherit" oninput="renderNotes()">
+        <button class="btn btn-primary btn-sm" onclick="openModal()"><i class="ti ti-plus"></i> New Note</button>
+      </div>
+    </header>
+    <main class="page-body">
+      <!-- Tag filters -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px" id="tag-filters">
+        <button class="btn btn-sm active-tag" data-tag="" onclick="setTag(this,'')">All Notes</button>
+        <button class="btn btn-sm btn-ghost" data-tag="Crop Care" onclick="setTag(this,'Crop Care')">🌱 Crop Care</button>
+        <button class="btn btn-sm btn-ghost" data-tag="Pest & Disease" onclick="setTag(this,'Pest & Disease')">🐛 Pest & Disease</button>
+        <button class="btn btn-sm btn-ghost" data-tag="Weather" onclick="setTag(this,'Weather')">🌦️ Weather</button>
+        <button class="btn btn-sm btn-ghost" data-tag="Market" onclick="setTag(this,'Market')">💰 Market</button>
+        <button class="btn btn-sm btn-ghost" data-tag="General" onclick="setTag(this,'General')">📝 General</button>
+      </div>
+
+      <div id="notes-count" style="font-size:12px;color:var(--text-secondary);margin-bottom:14px"></div>
+      <div class="notes-grid" id="notes-grid"></div>
+      <div id="notes-empty" class="empty-state hidden">
+        <i class="ti ti-notebook"></i>
+        <h3>No notes yet</h3>
+        <p>Write down observations, reminders, and ideas about your farm</p>
+        <button class="btn btn-primary btn-sm" onclick="openModal()">Write First Note</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Note Modal (Write/Edit) -->
+<div class="modal-overlay hidden" id="note-modal">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <div class="modal-title" id="note-modal-title">New Note</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="form-group"><label>Title *</label><input type="text" id="n-title" placeholder="e.g. Fall armyworm spotted in Plot B"></div>
+    <div class="form-group">
+      <label>Tag / Category</label>
+      <select id="n-tag">
+        <option value="General">📝 General</option>
+        <option value="Crop Care">🌱 Crop Care</option>
+        <option value="Pest & Disease">🐛 Pest & Disease</option>
+        <option value="Weather">🌦️ Weather</option>
+        <option value="Market">💰 Market</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Note *</label>
+      <textarea id="n-body" style="min-height:160px" placeholder="Write your observations, reminders, or ideas here..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:space-between;margin-top:4px;align-items:center">
+      <div id="edit-delete-btn"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveNote()"><i class="ti ti-check"></i> Save Note</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Note Modal -->
+<div class="modal-overlay hidden" id="view-modal">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <div class="modal-title" id="view-title" style="font-size:18px;line-height:1.3;max-width:85%"></div>
+      <button class="modal-close" onclick="closeViewModal()">×</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span class="badge badge-green" id="view-tag"></span>
+      <span style="font-size:12px;color:var(--text-muted)" id="view-date"></span>
+    </div>
+    <div id="view-body" style="font-size:14px;line-height:1.75;color:var(--text-primary);white-space:pre-wrap"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-danger btn-sm" id="view-delete-btn"><i class="ti ti-trash"></i> Delete</button>
+      <button class="btn btn-outline btn-sm" id="view-edit-btn"><i class="ti ti-edit"></i> Edit</button>
+      <button class="btn btn-ghost" onclick="closeViewModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+if (!Auth.requireAuth()) throw '';
+renderSidebar('notes');
+initSidebar('notes');
+setTopbarDate(null, document.getElementById('topbar-date'), '');
+
+let editId = null, activeTag = '';
+
+const tagColors = {'Crop Care':'badge-green','Pest & Disease':'badge-red','Weather':'badge-blue','Market':'badge-amber','General':'badge-grey'};
+
+function setTag(btn, tag) {
+  activeTag = tag;
+  document.querySelectorAll('#tag-filters button').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-ghost'); });
+  btn.classList.remove('btn-ghost'); btn.classList.add('btn-primary');
+  renderNotes();
+}
+
+function renderNotes() {
+  let notes = getUserData('notes');
+  const q = document.getElementById('search-notes').value.trim().toLowerCase();
+  if (activeTag) notes = notes.filter(n => n.tag === activeTag);
+  if (q) notes = notes.filter(n => n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q));
+  notes = notes.sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+  document.getElementById('notes-count').textContent = `${notes.length} note${notes.length!==1?'s':''}`;
+  const grid = document.getElementById('notes-grid');
+  const empty = document.getElementById('notes-empty');
+
+  if (!notes.length) { grid.innerHTML=''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  grid.innerHTML = notes.map(n => `
+    <div class="note-card" onclick="viewNote('${n.id}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <div class="note-title" style="flex:1">${n.title}</div>
+        <span class="badge ${tagColors[n.tag]||'badge-grey'}" style="flex-shrink:0;font-size:10px">${n.tag||'General'}</span>
+      </div>
+      <div class="note-preview">${n.body}</div>
+      <div class="note-meta">
+        <div class="note-date">${new Date(n.updatedAt).toLocaleDateString('en-MW',{day:'numeric',month:'short',year:'numeric'})}</div>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('${n.id}')"><i class="ti ti-edit"></i></button>
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delNote('${n.id}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function openModal(id) {
+  editId = id || null;
+  document.getElementById('note-modal-title').textContent = editId ? 'Edit Note' : 'New Note';
+  const delBtn = document.getElementById('edit-delete-btn');
+  if (!editId) {
+    document.getElementById('n-title').value=''; document.getElementById('n-body').value=''; document.getElementById('n-tag').value='General';
+    delBtn.innerHTML='';
+  } else {
+    const n = getUserData('notes').find(x=>x.id===editId);
+    if(n){document.getElementById('n-title').value=n.title;document.getElementById('n-body').value=n.body;document.getElementById('n-tag').value=n.tag||'General';}
+    delBtn.innerHTML=`<button class="btn btn-danger btn-sm" onclick="delNote('${editId}');closeModal()"><i class="ti ti-trash"></i> Delete</button>`;
+  }
+  document.getElementById('note-modal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('n-title').focus(),100);
+}
+
+function closeModal() { document.getElementById('note-modal').classList.add('hidden'); editId=null; }
+
+function saveNote() {
+  const title=document.getElementById('n-title').value.trim(), body=document.getElementById('n-body').value.trim();
+  if (!title||!body) { toast('Please fill in the title and note.','error'); return; }
+  const now = new Date().toISOString();
+  const entry = { id:editId||'n_'+Date.now(), title, body, tag:document.getElementById('n-tag').value, updatedAt:now, createdAt:editId?(getUserData('notes').find(n=>n.id===editId)?.createdAt||now):now };
+  let notes = getUserData('notes');
+  if (editId) { notes=notes.map(n=>n.id===editId?entry:n); toast('Note updated!'); }
+  else { notes.push(entry); toast('Note saved! 📝'); }
+  saveUserData('notes',notes); closeModal(); renderNotes();
+}
+
+function viewNote(id) {
+  const n = getUserData('notes').find(x=>x.id===id);
+  if (!n) return;
+  document.getElementById('view-title').textContent = n.title;
+  document.getElementById('view-tag').textContent = n.tag||'General';
+  document.getElementById('view-tag').className = `badge ${tagColors[n.tag]||'badge-grey'}`;
+  document.getElementById('view-date').textContent = new Date(n.updatedAt).toLocaleDateString('en-MW',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('view-body').textContent = n.body;
+  document.getElementById('view-edit-btn').onclick = ()=>{closeViewModal();openModal(id);};
+  document.getElementById('view-delete-btn').onclick = ()=>{ if(confirm('Delete this note?')){delNote(id);closeViewModal();} };
+  document.getElementById('view-modal').classList.remove('hidden');
+}
+function closeViewModal() { document.getElementById('view-modal').classList.add('hidden'); }
+function delNote(id) { saveUserData('notes',getUserData('notes').filter(n=>n.id!==id)); toast('Note deleted.','warning'); renderNotes(); }
+function toggleSidebar(){document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.sidebar-overlay').classList.toggle('open');}
+function closeSidebar(){document.querySelector('.sidebar').classList.remove('open');document.querySelector('.sidebar-overlay').classList.remove('open');}
+
+renderNotes();
+</script>
+</body>
+</html>

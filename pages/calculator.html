@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Input Calculator — Farm Yanga</title>
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+        <div class="topbar-left"><h1>Input Calculator</h1><p id="topbar-date"></p></div>
+      </div>
+    </header>
+    <main class="page-body">
+      <div style="max-width:860px">
+        <div class="two-col" style="align-items:start">
+          <!-- Calculator Form -->
+          <div class="card">
+            <div class="card-header"><div class="card-title"><i class="ti ti-calculator"></i> Calculate Farm Inputs</div></div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:18px">Enter your land size and crop to get the exact amount of seeds, fertilizer, and chemicals you need.</p>
+
+            <div class="form-group">
+              <label>Select Crop *</label>
+              <select id="calc-crop" onchange="onCropChange()">
+                <option value="">Choose a crop...</option>
+                <option value="maize">🌽 Maize</option>
+                <option value="soybeans">🫘 Soybeans</option>
+                <option value="groundnuts">🥜 Groundnuts</option>
+                <option value="tobacco">🍂 Tobacco</option>
+                <option value="tomatoes">🍅 Tomatoes</option>
+                <option value="onions">🧅 Onions</option>
+                <option value="sweet_potato">🍠 Sweet Potato</option>
+                <option value="beans">🫘 Beans (Kidney)</option>
+                <option value="sunflower">🌻 Sunflower</option>
+                <option value="cabbage">🥬 Cabbage</option>
+                <option value="rice">🌾 Rice</option>
+                <option value="pigeon_peas">🌿 Pigeon Peas</option>
+                <option value="sorghum">🌾 Sorghum</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Land Size *</label>
+                <input type="number" id="calc-size" placeholder="e.g. 2" min="0.1" step="0.1">
+              </div>
+              <div class="form-group">
+                <label>Unit</label>
+                <select id="calc-unit" onchange="calculate()">
+                  <option value="ha">Hectares (ha)</option>
+                  <option value="acres">Acres</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Planting Spacing</label>
+              <select id="calc-spacing" onchange="calculate()">
+                <option value="standard">Standard (recommended)</option>
+                <option value="close">Close spacing (more yield)</option>
+                <option value="wide">Wide spacing (intercropping)</option>
+              </select>
+            </div>
+
+            <div id="crop-info" style="background:var(--green-light);border-radius:var(--radius);padding:12px 14px;font-size:12px;color:var(--green-mid);margin-bottom:14px;display:none"></div>
+
+            <button class="btn btn-primary btn-block" onclick="calculate()"><i class="ti ti-calculator"></i> Calculate</button>
+
+            <!-- Results -->
+            <div id="calc-results" style="display:none">
+              <div style="border-top:1px solid var(--border);margin:18px 0"></div>
+              <div style="font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px"><i class="ti ti-checkbox" style="color:#4caf50"></i> Results for <span id="res-desc"></span></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="results-grid"></div>
+              <div style="margin-top:14px;background:var(--amber-light);border-radius:var(--radius);padding:12px 14px;font-size:12px;color:#92400e" id="res-notes"></div>
+              <div style="margin-top:10px;display:flex;gap:8px">
+                <button class="btn btn-outline btn-sm" onclick="saveToActivities()"><i class="ti ti-notes"></i> Save as Activity</button>
+                <button class="btn btn-ghost btn-sm" onclick="printResults()"><i class="ti ti-printer"></i> Print</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right column -->
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <!-- Quick Reference -->
+            <div class="card">
+              <div class="card-header"><div class="card-title"><i class="ti ti-info-circle"></i> Malawi Fertilizer Guide</div></div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">Standard MoAIWD recommendations per hectare</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
+                  <div style="font-weight:700;font-size:13px;margin-bottom:4px">🌽 Maize</div>
+                  <div style="font-size:12px;color:var(--text-secondary);line-height:1.6">Basal: 3 bags D-Compound (50kg)<br>Top dress: 3 bags CAN (50kg) at 4-6 weeks<br>Seed: 25kg/ha (75×25cm spacing)</div>
+                </div>
+                <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
+                  <div style="font-weight:700;font-size:13px;margin-bottom:4px">🫘 Soybeans</div>
+                  <div style="font-size:12px;color:var(--text-secondary);line-height:1.6">Basal: 2 bags SSP (50kg)<br>No nitrogen fertilizer needed<br>Seed: 80kg/ha, inoculate with Bradyrhizobium</div>
+                </div>
+                <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
+                  <div style="font-weight:700;font-size:13px;margin-bottom:4px">🥜 Groundnuts</div>
+                  <div style="font-size:12px;color:var(--text-secondary);line-height:1.6">Basal: 2 bags SSP (50kg)<br>Gypsum: 200kg/ha at pegging<br>Seed: 80-100kg/ha shelled</div>
+                </div>
+                <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
+                  <div style="font-weight:700;font-size:13px;margin-bottom:4px">🍅 Tomatoes</div>
+                  <div style="font-size:12px;color:var(--text-secondary);line-height:1.6">Basal: 3 bags D-Compound<br>Top dress: 2 bags CAN, fortnightly<br>Seedlings: 3,300–5,000 plants/ha</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Unit Converter -->
+            <div class="card">
+              <div class="card-header"><div class="card-title"><i class="ti ti-arrows-exchange"></i> Unit Converter</div></div>
+              <div class="form-row">
+                <div class="form-group"><label>Value</label><input type="number" id="conv-val" placeholder="e.g. 2" oninput="convert()"></div>
+                <div class="form-group"><label>From</label>
+                  <select id="conv-from" onchange="convert()">
+                    <option value="ha">Hectares</option><option value="acres">Acres</option><option value="sqm">Sq. Metres</option>
+                  </select>
+                </div>
+              </div>
+              <div id="conv-result" style="background:var(--green-light);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--green-mid);display:none"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+if (!Auth.requireAuth()) throw '';
+renderSidebar('calculator');
+initSidebar('calculator');
+setTopbarDate(null, document.getElementById('topbar-date'), '');
+
+// Crop data: seeds(kg/ha), basal(bags/ha 50kg), topDress(bags/ha), chemical(L/ha), spacing
+const CROP_DATA = {
+  maize:       { name:'Maize', emoji:'🌽', seed:25, basal:3, basalType:'D-Compound', topDress:3, topDressType:'CAN', chemical:1.5, chemType:'Atrazine herbicide', yieldTon:3.5, notes:'Apply basal at planting in the planting hole. Top-dress when plants are knee-high. Hill up soil around base at top-dressing time.' },
+  soybeans:    { name:'Soybeans', emoji:'🫘', seed:80, basal:2, basalType:'SSP', topDress:0, topDressType:'None needed', chemical:1.0, chemType:'Pre-emerge herbicide', yieldTon:1.5, notes:'Inoculate seeds with Bradyrhizobium before planting. Do NOT apply nitrogen fertilizer — soybeans fix their own. Apply SSP only.' },
+  groundnuts:  { name:'Groundnuts', emoji:'🥜', seed:90, basal:2, basalType:'SSP', topDress:0, topDressType:'Gypsum 200kg/ha at pegging', chemical:0.5, chemType:'Dimethoate (aphids)', yieldTon:1.2, notes:'Apply gypsum (calcium sulphate) when plants start flowering (pegging stage). This fills the pods and prevents peg rot.' },
+  tobacco:     { name:'Tobacco', emoji:'🍂', seed:0.05, basal:4, basalType:'Tobacco Compound D', topDress:3, topDressType:'Tobacco Compound J', chemical:2.0, chemType:'Fungicide + insecticide', yieldTon:1.8, notes:'Seedlings in nursery need 6–8 weeks. Transplant only healthy seedlings. Top at 16–18 leaves. Cure promptly after harvest.' },
+  tomatoes:    { name:'Tomatoes', emoji:'🍅', seed:0.15, basal:3, basalType:'D-Compound', topDress:2, topDressType:'CAN (every 3 weeks)', chemical:3.0, chemType:'Mancozeb + Dimethoate', yieldTon:20, notes:'Stake plants early. Spray fungicide every 10–14 days. Remove suckers regularly. Use drip irrigation if possible.' },
+  onions:      { name:'Onions', emoji:'🧅', seed:4, basal:2, basalType:'D-Compound', topDress:2, topDressType:'CAN', chemical:1.5, chemType:'Mancozeb (downy mildew)', yieldTon:15, notes:'Reduce irrigation 2 weeks before harvest to improve storage quality. Harvest when tops fall over naturally.' },
+  sweet_potato:{ name:'Sweet Potato', emoji:'🍠', seed:0, basal:1, basalType:'SSP', topDress:0, topDressType:'None', chemical:0, chemType:'Usually none needed', yieldTon:15, notes:'Plant vine cuttings 30–40cm long. Use certified, disease-free vines. Harvest at 3.5–4 months depending on variety.' },
+  beans:       { name:'Beans', emoji:'🫘', seed:60, basal:2, basalType:'SSP', topDress:0, topDressType:'None needed', chemical:1.0, chemType:'Dimethoate (bean fly)', yieldTon:1.0, notes:'Apply insecticide at germination to prevent bean fly damage. Harvest when pods turn yellow and begin to dry.' },
+  sunflower:   { name:'Sunflower', emoji:'🌻', seed:5, basal:2, basalType:'D-Compound', topDress:1, topDressType:'CAN', chemical:1.0, chemType:'Insecticide (bollworm)', yieldTon:1.5, notes:'Plant 75×30cm. Do not apply excess nitrogen — it reduces oil content. Protect from birds at seed maturity with netting.' },
+  cabbage:     { name:'Cabbage', emoji:'🥬', seed:0.25, basal:3, basalType:'D-Compound', topDress:3, topDressType:'CAN (every 3 weeks)', chemical:2.0, chemType:'Karate (diamondback moth)', yieldTon:25, notes:'Transplant 4–6 week old seedlings. Spray insecticide regularly as diamondback moth is the main pest. Harvest before heads crack.' },
+  rice:        { name:'Rice', emoji:'🌾', seed:50, basal:2, basalType:'D-Compound', topDress:2, topDressType:'Urea', chemical:2.0, chemType:'Herbicide + insecticide', yieldTon:3.0, notes:'Transplant 21-day old seedlings. Keep flooded 5–10cm. Drain 2 weeks before harvest. Use certified upland varieties for non-irrigated fields.' },
+  pigeon_peas: { name:'Pigeon Peas', emoji:'🌿', seed:15, basal:1, basalType:'SSP', topDress:0, topDressType:'None needed', chemical:0.5, chemType:'Insecticide (pod borer)', yieldTon:1.2, notes:'Drought tolerant — good for dry areas. Can be intercropped with maize. Spray insecticide at flowering to control pod borers.' },
+  sorghum:     { name:'Sorghum', emoji:'🌾', seed:8, basal:2, basalType:'D-Compound', topDress:1, topDressType:'CAN', chemical:0, chemType:'Bird control (netting/scare)', yieldTon:2.0, notes:'Very drought-tolerant. Good for sandy soils. Main challenge is bird damage — cover heads with bags when grain starts to form.' },
+};
+
+let lastCalc = null;
+
+function onCropChange() {
+  const crop = document.getElementById('calc-crop').value;
+  const infoEl = document.getElementById('crop-info');
+  if (crop && CROP_DATA[crop]) {
+    const d = CROP_DATA[crop];
+    infoEl.style.display='block';
+    infoEl.innerHTML = `<strong>${d.emoji} ${d.name}</strong> — Expected yield: <strong>${d.yieldTon} tonnes/ha</strong> under good conditions.`;
+  } else { infoEl.style.display='none'; }
+  calculate();
+}
+
+function calculate() {
+  const cropKey = document.getElementById('calc-crop').value;
+  let size = parseFloat(document.getElementById('calc-size').value);
+  const unit = document.getElementById('calc-unit').value;
+  const spacing = document.getElementById('calc-spacing').value;
+  if (!cropKey || !size) { document.getElementById('calc-results').style.display='none'; return; }
+  if (unit === 'acres') size = size * 0.404686; // convert to ha
+  const d = CROP_DATA[cropKey];
+  const spacingMod = spacing==='close'?1.15:spacing==='wide'?0.8:1;
+  const seeds = cropKey==='sweet_potato'?'Vine cuttings':(d.seed*size*spacingMod).toFixed(1)+' kg';
+  const basal = (d.basal*size).toFixed(1);
+  const topDress = d.topDress?(d.topDress*size).toFixed(1):'Not needed';
+  const chemical = d.chemical?(d.chemical*size).toFixed(1):'Not needed';
+  const estYield = (d.yieldTon*size*0.85).toFixed(1);
+  const estBags = Math.round(d.yieldTon*size*0.85*20); // ~50kg bags at 1000kg/tonne
+  lastCalc = {cropKey,size,unit,d,seeds,basal,topDress,chemical,estYield,estBags};
+
+  document.getElementById('res-desc').textContent = `${d.emoji} ${d.name} on ${parseFloat(document.getElementById('calc-size').value)} ${unit}`;
+  document.getElementById('results-grid').innerHTML = `
+    <div class="calc-item"><div class="calc-item-label">Seeds / Planting material</div><div class="calc-item-val">${seeds}</div></div>
+    <div class="calc-item"><div class="calc-item-label">Basal Fertilizer (${d.basalType})</div><div class="calc-item-val">${basal} <span class="calc-item-unit">× 50kg bags</span></div></div>
+    <div class="calc-item"><div class="calc-item-label">Top Dressing (${d.topDressType})</div><div class="calc-item-val" style="font-size:${d.topDress?'18':'13'}px">${topDress}${d.topDress?' <span class="calc-item-unit">× 50kg bags</span>':''}</div></div>
+    <div class="calc-item"><div class="calc-item-label">Chemicals (${d.chemType})</div><div class="calc-item-val" style="font-size:${d.chemical?'18':'13'}px">${chemical}${d.chemical?' <span class="calc-item-unit">litres</span>':''}</div></div>
+    <div class="calc-item" style="background:var(--green-light)"><div class="calc-item-label">Estimated Harvest</div><div class="calc-item-val" style="color:#2e7d32">${estYield} <span class="calc-item-unit">tonnes</span></div></div>
+    <div class="calc-item" style="background:var(--green-light)"><div class="calc-item-label">Approx. 50kg Bags</div><div class="calc-item-val" style="color:#2e7d32">~${estBags} <span class="calc-item-unit">bags</span></div></div>`;
+  document.getElementById('res-notes').innerHTML = `<strong>💡 Tip:</strong> ${d.notes}`;
+  document.getElementById('calc-results').style.display='block';
+}
+
+function saveToActivities() {
+  if (!lastCalc) return;
+  const act = { id:'a_'+Date.now(), date:new Date().toISOString().split('T')[0], activity:'Planning', crop:lastCalc.d.name, notes:`Calculated inputs: Seeds ${lastCalc.seeds}, Basal ${lastCalc.basal} bags ${lastCalc.d.basalType}, Top dress ${lastCalc.topDress} bags, Chemical ${lastCalc.chemical}L`, cost:0 };
+  const acts = getUserData('activities'); acts.push(act); saveUserData('activities',acts);
+  toast('Saved to Farm Activities! ✓');
+}
+
+function printResults() { window.print(); }
+
+function convert() {
+  const val=parseFloat(document.getElementById('conv-val').value),from=document.getElementById('conv-from').value;
+  if(!val){document.getElementById('conv-result').style.display='none';return;}
+  let ha,acres,sqm;
+  if(from==='ha'){ha=val;acres=val*2.47105;sqm=val*10000;}
+  else if(from==='acres'){acres=val;ha=val*0.404686;sqm=val*4046.86;}
+  else{sqm=val;ha=val/10000;acres=val/4046.86;}
+  document.getElementById('conv-result').innerHTML = `<strong>${val} ${from}</strong> = <br><strong>${ha.toFixed(4)} hectares</strong> = <strong>${acres.toFixed(3)} acres</strong> = <strong>${Math.round(sqm).toLocaleString()} m²</strong>`;
+  document.getElementById('conv-result').style.display='block';
+}
+
+function toggleSidebar(){document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.sidebar-overlay').classList.toggle('open');}
+function closeSidebar(){document.querySelector('.sidebar').classList.remove('open');document.querySelector('.sidebar-overlay').classList.remove('open');}
+</script>
+</body>
+</html>

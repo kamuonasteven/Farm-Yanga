@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yanga AI — Farm Yanga</title>
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+        <div class="topbar-left"><h1>Yanga AI</h1><p>Your smart farming assistant · English & Chichewa</p></div>
+      </div>
+      <div class="topbar-right">
+        <span class="badge badge-green"><i class="ti ti-wifi"></i> Online</span>
+        <button class="btn btn-ghost btn-sm" onclick="clearChat()"><i class="ti ti-refresh"></i> New Chat</button>
+      </div>
+    </header>
+    <main class="page-body" style="padding:0;display:flex;height:calc(100vh - 57px)">
+      <div style="display:flex;height:100%;width:100%;gap:0">
+
+        <!-- Chat Panel -->
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--border)">
+
+          <!-- Chat messages -->
+          <div id="chat-msgs" style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:14px;background:var(--bg)"></div>
+
+          <!-- Footer -->
+          <div style="background:var(--surface);border-top:1px solid var(--border)">
+            <!-- Language toggle -->
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 16px 6px">
+              <span style="font-size:11px;color:var(--text-muted);font-weight:600">Language:</span>
+              <button class="lang-btn active" id="lang-en" onclick="setLang('en')">🇬🇧 English</button>
+              <button class="lang-btn" id="lang-cy" onclick="setLang('cy')">🇲🇼 Chichewa</button>
+            </div>
+            <!-- Quick prompts -->
+            <div style="display:flex;gap:6px;padding:4px 16px 8px;flex-wrap:wrap">
+              <button class="quick-chip" onclick="quickAsk('planting')">🌱 Planting tips</button>
+              <button class="quick-chip" onclick="quickAsk('fertilizer')">🌿 Fertilizer advice</button>
+              <button class="quick-chip" onclick="quickAsk('pests')">🐛 Pest control</button>
+              <button class="quick-chip" onclick="quickAsk('weather')">🌦️ Best planting time</button>
+              <button class="quick-chip" onclick="quickAsk('market')">💰 Selling my harvest</button>
+              <button class="quick-chip" onclick="quickAsk('storage')">🏚️ Storage tips</button>
+            </div>
+            <!-- Input -->
+            <div style="display:flex;gap:8px;padding:0 16px 14px">
+              <input type="text" id="chat-input" placeholder="Ask anything about farming..." style="flex:1;padding:10px 16px;border:1.5px solid var(--border);border-radius:24px;font-size:13px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')sendMsg()">
+              <button class="btn btn-primary" onclick="sendMsg()" style="border-radius:50%;width:42px;height:42px;padding:0;justify-content:center"><i class="ti ti-send"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right sidebar: context panel -->
+        <div style="width:260px;flex-shrink:0;background:var(--surface);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px" id="context-panel">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Your Farm Context</div>
+            <div id="ctx-crops"></div>
+            <div id="ctx-weather" style="margin-top:10px"></div>
+            <div id="ctx-season" style="margin-top:10px"></div>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Suggested Topics</div>
+            <div style="display:flex;flex-direction:column;gap:6px" id="topic-list"></div>
+          </div>
+          <div style="background:var(--green-light);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--green-mid);margin-top:auto">
+            <strong>About Yanga AI</strong><br>Powered by Claude AI. Provides advice tailored to Malawian farming conditions. Always verify important decisions with your local agricultural extension officer (AEDC/DAES).
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+if (!Auth.requireAuth()) throw '';
+renderSidebar('ai');
+initSidebar('ai');
+
+const user = Auth.currentUser();
+const season = getMalawiSeason();
+const wx = getSimulatedWeather(user.location);
+let activeLang = 'en';
+let chatHistory = [];
+
+// Build farm context for AI system prompt
+function buildSystemPrompt() {
+  const crops = (user.crops||[]).join(', ') || 'not specified';
+  const acts = getUserData('activities').slice(-5).map(a=>`${a.date}: ${a.activity} on ${a.crop||'general'}`).join('; ') || 'none';
+  return `You are Yanga AI, a friendly and knowledgeable agricultural assistant for Malawian farmers, built into the Farm Yanga app.
+
+FARMER PROFILE:
+- Name: ${user.name}
+- Location: ${user.location}, Malawi
+- Farm size: ${user.farmSize || 'not specified'}
+- Crops growing: ${crops}
+- Current season: ${season.name}
+- Current weather: ${wx.temp}°C, ${wx.description}, humidity ${wx.humidity}%
+
+RECENT FARM ACTIVITIES:
+${acts}
+
+YOUR ROLE:
+- Give practical, actionable farming advice specific to Malawian conditions
+- Reference local context: ADMARC prices, MoAIWD recommendations, local input suppliers
+- When the farmer writes in Chichewa, respond in Chichewa. When in English, respond in English.
+- Keep responses concise and practical — farmers want clear, direct guidance
+- Reference the farmer's specific crops (${crops}) when relevant
+- Mention local resources: DAES extension officers, NASFAM, Farmers World, NBS Bank agricultural loans
+- Use Malawi Kwacha (MK) for all prices
+- Be warm and encouraging — farming is hard work
+
+IMPORTANT: Always remind farmers to consult their local Agricultural Extension Development Coordinator (AEDC) for location-specific advice. You can chat in both English and Chichewa.`;
+}
+
+// Render context panel
+function renderContext() {
+  const crops = user.crops||[];
+  document.getElementById('ctx-crops').innerHTML = `<div style="font-size:12px;font-weight:600;margin-bottom:6px">My Crops</div>${crops.length?crops.map(c=>`<span class="badge badge-green" style="margin:2px;display:inline-flex">${c}</span>`).join(''):'<span style="font-size:12px;color:var(--text-muted)">No crops added yet</span>'}`;
+  document.getElementById('ctx-weather').innerHTML = `<div style="background:var(--bg);border-radius:8px;padding:10px;font-size:12px"><div style="font-weight:600;margin-bottom:3px">${wx.icon} ${wx.description}</div><div style="color:var(--text-secondary)">${wx.temp}°C · ${user.location}</div></div>`;
+  document.getElementById('ctx-season').innerHTML = `<div style="background:var(--green-light);border-radius:8px;padding:10px;font-size:12px;color:var(--green-mid)"><div style="font-weight:700">${season.name}</div><div style="margin-top:2px;color:var(--text-secondary);font-size:11px">${getFarmingAdvice(season,crops).slice(0,80)}...</div></div>`;
+
+  const topics = crops.length ? [
+    `When to plant ${crops[0]}`,
+    `Fertilizer for ${crops[0]}`,
+    `Common pests for ${crops[0]}`,
+    `How to store ${crops[0]}`,
+    'Best time to sell my harvest',
+    'How to prepare land for planting',
+  ] : ['How to start farming in Malawi','Best crops for my area','Understanding fertilizers','Pest and disease management','When to plant during rains','Selling at the best price'];
+
+  document.getElementById('topic-list').innerHTML = topics.map(t=>`<button onclick="sendQuick('${t}')" style="text-align:left;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;cursor:pointer;font-family:inherit;color:var(--text-primary);transition:all 0.12s" onmouseover="this.style.borderColor='#4caf50'" onmouseout="this.style.borderColor='var(--border)'">${t}</button>`).join('');
+}
+
+function setLang(lang) {
+  activeLang = lang;
+  document.getElementById('lang-en').classList.toggle('active', lang==='en');
+  document.getElementById('lang-cy').classList.toggle('active', lang==='cy');
+  document.getElementById('chat-input').placeholder = lang==='cy'?'Funsani chilichonse pa ulimi...':'Ask anything about farming...';
+}
+
+// Initial greeting
+function showWelcome() {
+  const crops = user.crops||[];
+  const greet = activeLang==='cy'
+    ? `Muli bwanji, ${user.name.split(' ')[0]}! 👋\n\nNdine Yanga AI, wothandiza wanu waulimi. Ndimakuuzirani zambiri pa ulimi wa ${crops.length?crops.join(', '):'mbewu zanu'} ku ${user.location}.\n\nKodi muli ndi funso lanji lero? Mutha kundilemba mu Chingerezi kapena Chichewa.`
+    : `Hello ${user.name.split(' ')[0]}! 👋\n\nI'm Yanga AI, your personal farming assistant. I know you're growing ${crops.length?crops.join(', '):'crops'} in ${user.location} during the ${season.name}.\n\nAsk me anything about your farm — planting, fertilizer, pests, market prices, or anything else. I can chat in English or Chichewa! 🌱`;
+  appendMsg('ai', greet);
+}
+
+function appendMsg(role, text) {
+  const msgs = document.getElementById('chat-msgs');
+  const initials = user.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  div.style.maxWidth = '80%';
+  div.style.alignSelf = role==='user'?'flex-end':'flex-start';
+  div.innerHTML = `
+    <div class="msg-av ${role}" style="flex-shrink:0;margin-top:4px">${role==='ai'?'🌱':initials}</div>
+    <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+      <div class="msg-bubble" style="white-space:pre-wrap">${text}</div>
+    </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('chat-msgs');
+  const div = document.createElement('div');
+  div.id = 'typing-indicator';
+  div.className = 'chat-msg ai';
+  div.innerHTML = `<div class="msg-av ai">🌱</div><div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() { document.getElementById('typing-indicator')?.remove(); }
+
+async function sendMsg() {
+  const inp = document.getElementById('chat-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  appendMsg('user', text);
+  chatHistory.push({role:'user', content: text});
+  showTyping();
+  await callAI(text);
+}
+
+function sendQuick(text) { document.getElementById('chat-input').value = text; sendMsg(); }
+
+function quickAsk(topic) {
+  const prompts = {
+    planting: activeLang==='cy'?'Ndisankhe nthawi yabwino yobzala mbewu zanga?':'When is the best time to plant my crops and what preparation do I need?',
+    fertilizer: activeLang==='cy'?'Ndizidziwe bwanji za feteleza yomwe ndiyenera kugwiritsa ntchito?':'What fertilizers should I use for my crops and how much per hectare?',
+    pests: activeLang==='cy'?'Ndizithandize bwanji ziweto ndi matenda a mbewu zanga?':'How do I identify and control common pests and diseases on my crops?',
+    weather: activeLang==='cy'?'Kodi nyengo iyanenera chiyani pa ulimi wanga?':'Based on the current weather and season, what should I be doing on my farm right now?',
+    market: activeLang==='cy'?'Ndigulitse liti ndi kuti kuti ndipeze ndalama zambiri?':'When and where should I sell my harvest to get the best price?',
+    storage: activeLang==='cy'?'Ndisunge bwanji mbewu zanga?':'How do I properly store my harvest to prevent losses and get better prices?',
+  };
+  sendQuick(prompts[topic]||topic);
+}
+
+async function callAI(userMsg) {
+  try {
+    const messages = [
+      ...chatHistory.slice(-10), // last 10 exchanges for context
+    ];
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: buildSystemPrompt(),
+        messages: messages,
+      })
+    });
+    const data = await response.json();
+    removeTyping();
+    if (data.content && data.content[0]) {
+      const reply = data.content[0].text;
+      appendMsg('ai', reply);
+      chatHistory.push({role:'assistant', content: reply});
+    } else {
+      appendMsg('ai', 'Sorry, I had trouble responding. Please try again.');
+    }
+  } catch (err) {
+    removeTyping();
+    // Fallback responses when API unavailable
+    const fallback = getFallbackResponse(userMsg);
+    appendMsg('ai', fallback);
+    chatHistory.push({role:'assistant', content: fallback});
+  }
+}
+
+function getFallbackResponse(msg) {
+  const m = msg.toLowerCase();
+  const crops = (user.crops||[]).join(', ') || 'your crops';
+  if (m.includes('fertilizer') || m.includes('feteleza')) return `For ${crops} in ${user.location}, the standard recommendation is:\n\n🌿 Basal fertilizer: Apply D-Compound at planting — 3 bags per hectare for maize, 2 bags for legumes.\n\n🌿 Top dressing: Apply CAN at 4-6 weeks after germination for maize — 3 bags per hectare.\n\nAlways apply in the planting hole or furrow, not broadcast. Contact your local AEDC extension officer for soil-specific advice.`;
+  if (m.includes('pest') || m.includes('disease') || m.includes('ziweto')) return `Common pests in Malawi to watch for:\n\n🐛 Fall Armyworm — most dangerous for maize. Spray Ampligo or Coragen early morning.\n🐛 Aphids — common on soybeans and tobacco. Use Dimethoate.\n🍄 Grey Leaf Spot — fungal disease in maize. Use certified varieties.\n\nScout your fields twice a week and act early. Contact Farmers World or your AEDC for approved pesticides.`;
+  if (m.includes('plant') || m.includes('bzala')) return `In ${user.location} during the ${season.name}:\n\n${getFarmingAdvice(season, user.crops||[])}\n\nFor ${season.code==='rainy'?'maize specifically':'most crops'}: plant as early as possible after the first reliable rains (November–December for most of Malawi).`;
+  if (m.includes('price') || m.includes('sell') || m.includes('ndalama')) return `Current market advice for ${user.location}:\n\n💰 Maize: ~MK 18,000 per 50kg bag (open market)\n💰 Soybeans: ~MK 42,000 per bag\n💰 Groundnuts: ~MK 95,000 per bag\n\n📅 Best time to sell: Prices are lowest at harvest (March–May). If you can store, sell in August–October when prices rise 30–50%.\n\nCheck ADMARC and local traders to compare prices.`;
+  return `Thank you for your question about "${msg}".\n\nAs your farming assistant, I'm here to help with:\n• 🌱 Crop planting & management for ${crops}\n• 🌿 Fertilizer & input recommendations\n• 🐛 Pest & disease identification\n• 💰 Market prices & selling advice\n• 🌦️ Seasonal farming advice for ${user.location}\n\nPlease ask me anything specific and I'll give you detailed guidance. You can also ask in Chichewa!`;
+}
+
+function clearChat() {
+  chatHistory = [];
+  document.getElementById('chat-msgs').innerHTML = '';
+  showWelcome();
+}
+
+function toggleSidebar(){document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.sidebar-overlay').classList.toggle('open');}
+function closeSidebar(){document.querySelector('.sidebar').classList.remove('open');document.querySelector('.sidebar-overlay').classList.remove('open');}
+
+// Boot
+renderContext();
+showWelcome();
+</script>
+<style>
+.typing-dots span { display:inline-block;width:7px;height:7px;background:var(--green-mid);border-radius:50%;margin:0 2px;animation:bounce 1.2s infinite; }
+.typing-dots span:nth-child(2){animation-delay:.2s}.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-7px)}}
+.lang-btn{padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text-secondary);font-family:inherit}
+.lang-btn.active{background:var(--green-light);border-color:var(--green-bright);color:var(--green-mid)}
+.quick-chip{padding:5px 12px;border-radius:14px;font-size:11px;border:1px solid var(--border);background:var(--surface);cursor:pointer;color:var(--text-secondary);font-family:inherit;transition:all .12s}
+.quick-chip:hover{border-color:var(--green-bright);color:var(--green-mid);background:var(--green-pale)}
+.msg-bubble{padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.65;max-width:100%}
+.chat-msg.ai .msg-bubble{background:var(--green-light);border-bottom-left-radius:4px}
+.chat-msg.user .msg-bubble{background:var(--green-dark);color:#fff;border-bottom-right-radius:4px}
+.msg-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.msg-av.ai{background:var(--green-dark);font-size:16px}
+.msg-av.user{background:var(--green-bright);font-size:11px;font-weight:700;color:#fff}
+</style>
+</body>
+</html>

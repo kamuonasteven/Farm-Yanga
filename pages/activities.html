@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farm Activities — Farm Yanga</title>
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+        <div class="topbar-left"><h1>Farm Activities</h1><p id="topbar-date"></p></div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary btn-sm" onclick="openModal()"><i class="ti ti-plus"></i> Log Activity</button>
+      </div>
+    </header>
+    <main class="page-body">
+      <!-- Filters -->
+      <div class="card" style="margin-bottom:18px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="margin:0;flex:1;min-width:140px">
+            <label style="font-size:12px">Filter by Type</label>
+            <select id="filter-type" onchange="renderList()">
+              <option value="">All Types</option>
+              <option>Planting</option><option>Weeding</option><option>Fertilizing</option>
+              <option>Spraying</option><option>Irrigation</option><option>Harvesting</option>
+              <option>Land Preparation</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;flex:1;min-width:140px">
+            <label style="font-size:12px">Filter by Crop</label>
+            <select id="filter-crop" onchange="renderList()">
+              <option value="">All Crops</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;flex:1;min-width:140px">
+            <label style="font-size:12px">Month</label>
+            <input type="month" id="filter-month" onchange="renderList()">
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stats-grid" style="margin-bottom:18px">
+        <div class="stat-card"><div class="stat-icon green"><i class="ti ti-notes"></i></div><div class="stat-label">Total Activities</div><div class="stat-value" id="stat-total">0</div></div>
+        <div class="stat-card"><div class="stat-icon amber"><i class="ti ti-coin"></i></div><div class="stat-label">Total Cost Logged</div><div class="stat-value" id="stat-cost">MK 0</div></div>
+        <div class="stat-card"><div class="stat-icon blue"><i class="ti ti-calendar"></i></div><div class="stat-label">This Month</div><div class="stat-value" id="stat-month">0</div></div>
+        <div class="stat-card"><div class="stat-icon red"><i class="ti ti-plant"></i></div><div class="stat-label">Crops Tracked</div><div class="stat-value" id="stat-crops">0</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-list"></i> Activity Log</div>
+          <div id="result-count" style="font-size:12px;color:#6b7280"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Activity</th><th>Crop / Plot</th><th>Cost (MK)</th><th>Notes</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="activity-table"></tbody>
+          </table>
+        </div>
+        <div id="activity-empty" class="empty-state hidden">
+          <i class="ti ti-notes"></i><h3>No activities logged</h3>
+          <p>Start recording your farm work to track progress</p>
+          <button class="btn btn-primary btn-sm" onclick="openModal()">Log First Activity</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Add Activity Modal -->
+<div class="modal-overlay hidden" id="act-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Log Farm Activity</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Date *</label><input type="date" id="act-date"></div>
+      <div class="form-group"><label>Activity Type *</label>
+        <select id="act-type">
+          <option value="">Select type</option>
+          <option>Planting</option><option>Weeding</option><option>Fertilizing</option>
+          <option>Spraying</option><option>Irrigation</option><option>Harvesting</option>
+          <option>Land Preparation</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Crop</label>
+        <select id="act-crop"><option value="">General / All crops</option></select>
+      </div>
+      <div class="form-group"><label>Plot / Field</label><input type="text" id="act-plot" placeholder="e.g. Plot A, North Field"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Cost (MK)</label><input type="number" id="act-cost" placeholder="0" min="0"></div>
+      <div class="form-group"><label>Labour Hours</label><input type="number" id="act-hours" placeholder="0" min="0" step="0.5"></div>
+    </div>
+    <div class="form-group"><label>Notes / Details</label><textarea id="act-notes" placeholder="e.g. Applied 3 bags CAN, used 2 workers..."></textarea></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveActivity()"><i class="ti ti-check"></i> Save Activity</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+if (!Auth.requireAuth()) throw '';
+renderSidebar('activities');
+initSidebar('activities');
+setTopbarDate(null, document.getElementById('topbar-date'), '');
+
+let editId = null;
+const user = Auth.currentUser();
+
+// Populate crop dropdowns
+function populateCrops() {
+  const crops = user.crops || [];
+  ['filter-crop','act-crop'].forEach(id => {
+    const sel = document.getElementById(id);
+    const base = id==='filter-crop'?'<option value="">All Crops</option>':'<option value="">General / All crops</option>';
+    sel.innerHTML = base + crops.map(c => `<option>${c}</option>`).join('');
+  });
+}
+populateCrops();
+
+// Set default date to today
+document.getElementById('act-date').value = new Date().toISOString().split('T')[0];
+const now = new Date();
+document.getElementById('filter-month').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+function getActivities() { return getUserData('activities'); }
+
+function renderList() {
+  const acts = getActivities();
+  const typeFilter = document.getElementById('filter-type').value;
+  const cropFilter = document.getElementById('filter-crop').value;
+  const monthFilter = document.getElementById('filter-month').value;
+
+  let filtered = acts;
+  if (typeFilter) filtered = filtered.filter(a => a.activity === typeFilter);
+  if (cropFilter) filtered = filtered.filter(a => a.crop === cropFilter);
+  if (monthFilter) filtered = filtered.filter(a => a.date && a.date.startsWith(monthFilter));
+  filtered = filtered.sort((a,b) => new Date(b.date)-new Date(a.date));
+
+  // Stats
+  const total = acts.length;
+  const totalCost = acts.reduce((s,a) => s+(Number(a.cost)||0), 0);
+  const thisMonth = acts.filter(a => a.date && a.date.startsWith(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`)).length;
+  const uniqueCrops = new Set(acts.map(a => a.crop).filter(Boolean)).size;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-cost').textContent = formatMK(totalCost);
+  document.getElementById('stat-month').textContent = thisMonth;
+  document.getElementById('stat-crops').textContent = uniqueCrops;
+
+  const tbody = document.getElementById('activity-table');
+  const empty = document.getElementById('activity-empty');
+  document.getElementById('result-count').textContent = `${filtered.length} records`;
+
+  if (!filtered.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+  } else {
+    empty.classList.add('hidden');
+    const typeColors = {Planting:'badge-green',Weeding:'badge-amber',Fertilizing:'badge-blue',Spraying:'badge-amber',Irrigation:'badge-blue',Harvesting:'badge-green','Land Preparation':'badge-grey',Other:'badge-grey'};
+    tbody.innerHTML = filtered.map(a => `
+      <tr>
+        <td>${a.date||'-'}</td>
+        <td><span class="badge ${typeColors[a.activity]||'badge-grey'}">${a.activity||'-'}</span></td>
+        <td>${a.crop||'General'}${a.plot?' · '+a.plot:''}</td>
+        <td>${a.cost?formatMK(a.cost):'-'}</td>
+        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.notes||'-'}</td>
+        <td>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-ghost btn-sm" onclick="editActivity('${a.id}')"><i class="ti ti-edit"></i></button>
+            <button class="btn btn-danger btn-sm" onclick="deleteActivity('${a.id}')"><i class="ti ti-trash"></i></button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+}
+
+function openModal(id) {
+  editId = id || null;
+  document.getElementById('modal-title').textContent = editId ? 'Edit Activity' : 'Log Farm Activity';
+  if (!editId) {
+    ['act-date','act-type','act-crop','act-plot','act-cost','act-hours','act-notes'].forEach(id => { document.getElementById(id).value = id==='act-date'?new Date().toISOString().split('T')[0]:''; });
+  } else {
+    const acts = getActivities();
+    const a = acts.find(x => x.id === editId);
+    if (a) {
+      document.getElementById('act-date').value = a.date||'';
+      document.getElementById('act-type').value = a.activity||'';
+      document.getElementById('act-crop').value = a.crop||'';
+      document.getElementById('act-plot').value = a.plot||'';
+      document.getElementById('act-cost').value = a.cost||'';
+      document.getElementById('act-hours').value = a.hours||'';
+      document.getElementById('act-notes').value = a.notes||'';
+    }
+  }
+  document.getElementById('act-modal').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('act-modal').classList.add('hidden'); editId=null; }
+
+function saveActivity() {
+  const date = document.getElementById('act-date').value;
+  const activity = document.getElementById('act-type').value;
+  if (!date||!activity) { toast('Please fill in the date and activity type.','error'); return; }
+  const newAct = { id: editId||'a_'+Date.now(), date, activity,
+    crop: document.getElementById('act-crop').value,
+    plot: document.getElementById('act-plot').value,
+    cost: Number(document.getElementById('act-cost').value)||0,
+    hours: Number(document.getElementById('act-hours').value)||0,
+    notes: document.getElementById('act-notes').value,
+  };
+  let acts = getActivities();
+  if (editId) { acts = acts.map(a => a.id===editId?newAct:a); toast('Activity updated!'); }
+  else { acts.push(newAct); toast('Activity saved! ✓'); }
+  saveUserData('activities', acts);
+  closeModal(); renderList();
+}
+function editActivity(id) { openModal(id); }
+function deleteActivity(id) {
+  if (!confirm('Delete this activity?')) return;
+  saveUserData('activities', getActivities().filter(a => a.id!==id));
+  toast('Activity deleted.','warning'); renderList();
+}
+function clearFilters() {
+  document.getElementById('filter-type').value='';
+  document.getElementById('filter-crop').value='';
+  document.getElementById('filter-month').value='';
+  renderList();
+}
+function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('open'); document.querySelector('.sidebar-overlay').classList.toggle('open'); }
+function closeSidebar() { document.querySelector('.sidebar').classList.remove('open'); document.querySelector('.sidebar-overlay').classList.remove('open'); }
+
+renderList();
+</script>
+</body>
+</html>

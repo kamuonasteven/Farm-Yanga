@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Crops — Farm Yanga</title>
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+        <div class="topbar-left"><h1>My Crops</h1><p id="topbar-date"></p></div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary btn-sm" onclick="openCropEditor()"><i class="ti ti-edit"></i> Edit Crops</button>
+      </div>
+    </header>
+    <main class="page-body">
+      <div class="two-col" style="margin-bottom:18px">
+        <div class="card" style="background:linear-gradient(135deg,#1a3d1f,#2e7d32);color:#fff;border:none">
+          <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Current Season</div>
+          <div style="font-size:22px;font-weight:700" id="season-name">Loading...</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:6px;line-height:1.5" id="season-advice"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px"><i class="ti ti-plant"></i> Crops Summary</div>
+          <div style="font-size:32px;font-weight:700" id="crop-count">0</div>
+          <div style="font-size:13px;color:#6b7280">crops selected for this season</div>
+          <div id="crop-badges" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-plant"></i> My Crops This Season</div>
+        </div>
+        <div id="my-crops-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px"></div>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-bulb"></i> Crop Care Tips for This Season</div>
+        </div>
+        <div id="care-tips"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Crop Editor Modal -->
+<div class="modal-overlay hidden" id="crop-modal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title">Edit My Crops</div>
+      <button class="modal-close" onclick="closeCropModal()">×</button>
+    </div>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Select all the crops you are currently growing or plan to grow this season.</p>
+    <div class="crop-grid-select" id="modal-crop-grid"></div>
+    <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeCropModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCrops()"><i class="ti ti-check"></i> Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+if (!Auth.requireAuth()) throw '';
+renderSidebar('crops');
+initSidebar('crops');
+setTopbarDate(null, document.getElementById('topbar-date'), '');
+
+const ALL_CROPS = [
+  {emoji:'🌽',name:'Maize',season:'Rainy',tips:'Apply CAN top-dressing 4-6 weeks after planting. Hill up at knee height.'},
+  {emoji:'🫘',name:'Soybeans',season:'Rainy',tips:'Inoculate seeds before planting. Do not apply nitrogen fertilizer.'},
+  {emoji:'🥜',name:'Groundnuts',season:'Rainy',tips:'Plant on ridges. Peg when flowering begins. Avoid waterlogging.'},
+  {emoji:'🍂',name:'Tobacco',season:'Rainy',tips:'Transplant seedlings after first rains. Top at 16-18 leaves. Cure promptly.'},
+  {emoji:'🍅',name:'Tomatoes',season:'All year',tips:'Stake at 30cm. Apply foliar spray bi-weekly. Scout for blight daily.'},
+  {emoji:'🧅',name:'Onions',season:'Dry season',tips:'Plant in well-drained seedbeds. Reduce irrigation as bulbs mature.'},
+  {emoji:'🍠',name:'Sweet Potato',season:'Rainy',tips:'Plant vine cuttings on ridges. Weed 2-3 times. Harvest at 4 months.'},
+  {emoji:'🪴',name:'Cassava',season:'All year',tips:'Plant stem cuttings at 45° angle. Intercrop with legumes. Harvest at 9-18 months.'},
+  {emoji:'🫘',name:'Beans',season:'Rainy',tips:'Plant at beginning of rains. Apply single superphosphate. Harvest when pods dry.'},
+  {emoji:'🌻',name:'Sunflower',season:'Rainy',tips:'Plant at 75x30cm spacing. Protect from birds at maturity.'},
+  {emoji:'🥬',name:'Cabbage',season:'Dry season',tips:'Transplant 4-6 week old seedlings. Apply fertilizer every 3 weeks.'},
+  {emoji:'🌾',name:'Rice',season:'Rainy',tips:'Grow in low-lying areas or dambo. Transplant at 21 days. Keep flooded.'},
+  {emoji:'🧡',name:'Pumpkin',season:'Rainy',tips:'Plant 3 seeds per station on ridges. Thin to 2 plants. Very water tolerant.'},
+  {emoji:'🌿',name:'Pigeon Peas',season:'Rainy',tips:'Plant early in season. Drought tolerant. Can be intercropped with maize.'},
+  {emoji:'🥕',name:'Carrots',season:'Dry season',tips:'Sow directly in loose, deep soil. Thin to 5cm apart. Water consistently.'},
+  {emoji:'🌾',name:'Sorghum',season:'Rainy',tips:'Very drought tolerant. Plant on poor soils. Bird control needed near harvest.'},
+];
+
+let selectedCrops = new Set();
+
+function init() {
+  const user = Auth.currentUser();
+  const season = getMalawiSeason();
+  document.getElementById('season-name').textContent = '🌿 ' + season.name;
+  document.getElementById('season-advice').textContent = getFarmingAdvice(season, user.crops);
+  
+  const crops = user.crops || [];
+  document.getElementById('crop-count').textContent = crops.length;
+  selectedCrops = new Set(crops);
+
+  // Badges
+  const badges = document.getElementById('crop-badges');
+  badges.innerHTML = crops.map(c => `<span class="badge badge-green">${c}</span>`).join('') || '<span style="font-size:12px;color:#9ca3af">No crops selected</span>';
+
+  // Main grid
+  const grid = document.getElementById('my-crops-grid');
+  if (!crops.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="ti ti-plant"></i><h3>No crops selected</h3><p>Click "Edit Crops" to add crops for this season</p><button class="btn btn-primary btn-sm" onclick="openCropEditor()">Add Crops</button></div>`;
+  } else {
+    grid.innerHTML = crops.map(cn => {
+      const cd = ALL_CROPS.find(c => c.name === cn) || {emoji:'🌱',name:cn,season:'',tips:''};
+      return `<div class="card" style="text-align:center;padding:20px 16px">
+        <div style="font-size:36px;margin-bottom:8px">${cd.emoji}</div>
+        <div style="font-size:14px;font-weight:700">${cd.name}</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:3px">${cd.season} crop</div>
+        <div class="badge badge-green" style="margin-top:8px">Growing</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Care tips
+  const tips = document.getElementById('care-tips');
+  const userCropDetails = crops.map(cn => ALL_CROPS.find(c => c.name === cn)).filter(Boolean);
+  if (!userCropDetails.length) {
+    tips.innerHTML = '<p style="color:#9ca3af;font-size:13px">Add crops to see personalised care tips.</p>';
+  } else {
+    tips.innerHTML = userCropDetails.map(cd => `
+      <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:24px;flex-shrink:0">${cd.emoji}</div>
+        <div><div style="font-size:13px;font-weight:700;margin-bottom:3px">${cd.name}</div>
+        <div style="font-size:13px;color:#374151;line-height:1.5">${cd.tips}</div></div>
+      </div>`).join('');
+  }
+}
+
+function openCropEditor() {
+  const user = Auth.currentUser();
+  selectedCrops = new Set(user.crops || []);
+  renderModalGrid();
+  document.getElementById('crop-modal').classList.remove('hidden');
+}
+function closeCropModal() { document.getElementById('crop-modal').classList.add('hidden'); }
+function renderModalGrid() {
+  document.getElementById('modal-crop-grid').innerHTML = ALL_CROPS.map((c,i) => `
+    <div class="crop-card ${selectedCrops.has(c.name)?'selected':''}" onclick="toggleModalCrop('${c.name}',this)">
+      <div class="crop-em">${c.emoji}</div><div class="crop-n">${c.name}</div><div class="crop-s">${c.season}</div>
+    </div>`).join('');
+}
+function toggleModalCrop(name, el) {
+  selectedCrops.has(name)?selectedCrops.delete(name):selectedCrops.add(name);
+  el.classList.toggle('selected');
+}
+function saveCrops() {
+  Auth.updateUser({ crops: [...selectedCrops] });
+  closeCropModal();
+  toast('Crops updated! 🌱');
+  init();
+}
+
+function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('open'); document.querySelector('.sidebar-overlay').classList.toggle('open'); }
+function closeSidebar() { document.querySelector('.sidebar').classList.remove('open'); document.querySelector('.sidebar-overlay').classList.remove('open'); }
+
+init();
+</script>
+</body>
+</html>

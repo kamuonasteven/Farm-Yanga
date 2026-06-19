@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Costs & Budget — Farm Yanga</title>
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+        <div class="topbar-left"><h1>Costs & Budget</h1><p id="topbar-date"></p></div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary btn-sm" onclick="openModal()"><i class="ti ti-plus"></i> Add Expense</button>
+      </div>
+    </header>
+    <main class="page-body">
+      <div class="stats-grid" style="margin-bottom:18px">
+        <div class="stat-card"><div class="stat-icon amber"><i class="ti ti-coin"></i></div><div class="stat-label">Total Expenses</div><div class="stat-value" id="s-total">MK 0</div></div>
+        <div class="stat-card"><div class="stat-icon green"><i class="ti ti-cash"></i></div><div class="stat-label">Total Income</div><div class="stat-value" id="s-income">MK 0</div></div>
+        <div class="stat-card"><div class="stat-icon blue"><i class="ti ti-trending-up"></i></div><div class="stat-label">Net Profit / Loss</div><div class="stat-value" id="s-profit">MK 0</div></div>
+        <div class="stat-card"><div class="stat-icon red"><i class="ti ti-receipt"></i></div><div class="stat-label">Transactions</div><div class="stat-value" id="s-count">0</div></div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="ti ti-chart-pie"></i> Spending by Category</div>
+          </div>
+          <div id="category-breakdown"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="ti ti-receipt"></i> All Transactions</div>
+            <select id="filter-cat" onchange="render()" style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit">
+              <option value="">All Categories</option>
+              <option>Seeds</option><option>Fertilizer</option><option>Chemicals</option>
+              <option>Labour</option><option>Equipment</option><option>Transport</option>
+              <option>Harvest Sale</option><option>Other</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th></th></tr></thead>
+              <tbody id="costs-table"></tbody>
+            </table>
+          </div>
+          <div id="costs-empty" class="empty-state hidden"><i class="ti ti-coin"></i><h3>No records yet</h3><p>Start tracking your farm expenses and income</p><button class="btn btn-primary btn-sm" onclick="openModal()">Add Expense</button></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="modal-overlay hidden" id="cost-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="cost-modal-title">Add Expense / Income</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Date *</label><input type="date" id="c-date"></div>
+      <div class="form-group"><label>Type *</label>
+        <select id="c-type">
+          <option value="expense">Expense (Cost)</option>
+          <option value="income">Income (Sale)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>Category *</label>
+      <select id="c-cat">
+        <option value="">Select category</option>
+        <option>Seeds</option><option>Fertilizer</option><option>Chemicals</option>
+        <option>Labour</option><option>Equipment</option><option>Transport</option>
+        <option>Harvest Sale</option><option>Other</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Description *</label><input type="text" id="c-desc" placeholder="e.g. 3 bags CAN fertilizer, 50kg maize sold..."></div>
+    <div class="form-group"><label>Amount (MK) *</label><input type="number" id="c-amount" placeholder="0" min="0"></div>
+    <div class="form-group"><label>Related Crop</label>
+      <select id="c-crop"><option value="">General</option></select>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCost()"><i class="ti ti-check"></i> Save</button>
+    </div>
+  </div>
+</div>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+if (!Auth.requireAuth()) throw '';
+renderSidebar('costs');
+initSidebar('costs');
+setTopbarDate(null, document.getElementById('topbar-date'), '');
+const user = Auth.currentUser();
+document.getElementById('c-date').value = new Date().toISOString().split('T')[0];
+const crops = user.crops||[];
+document.getElementById('c-crop').innerHTML = '<option value="">General</option>' + crops.map(c=>`<option>${c}</option>`).join('');
+let editId=null;
+
+function render() {
+  const costs = getUserData('costs');
+  const catFilter = document.getElementById('filter-cat').value;
+  const filtered = catFilter?costs.filter(c=>c.category===catFilter):costs;
+  filtered.sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  const expenses = costs.filter(c=>c.type==='expense');
+  const income = costs.filter(c=>c.type==='income');
+  const totalExp = expenses.reduce((s,c)=>s+(Number(c.amount)||0),0);
+  const totalInc = income.reduce((s,c)=>s+(Number(c.amount)||0),0);
+  const profit = totalInc - totalExp;
+
+  document.getElementById('s-total').textContent = formatMK(totalExp);
+  document.getElementById('s-income').textContent = formatMK(totalInc);
+  document.getElementById('s-profit').textContent = formatMK(profit);
+  document.getElementById('s-profit').style.color = profit>=0?'#2e7d32':'#dc2626';
+  document.getElementById('s-count').textContent = costs.length;
+
+  // Category breakdown
+  const cats = {};
+  expenses.forEach(c=>{cats[c.category]=(cats[c.category]||0)+Number(c.amount||0);});
+  const catEl = document.getElementById('category-breakdown');
+  const sorted = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  if (!sorted.length) {
+    catEl.innerHTML = '<p style="color:#9ca3af;font-size:13px;text-align:center;padding:20px">No expense data yet.</p>';
+  } else {
+    const max = sorted[0][1]||1;
+    catEl.innerHTML = sorted.map(([cat,amt])=>`
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:4px">
+          <span>${cat}</span><span>${formatMK(amt)}</span>
+        </div>
+        <div class="progress"><div class="progress-bar" style="width:${Math.round(amt/max*100)}%"></div></div>
+      </div>`).join('');
+  }
+
+  const tbody = document.getElementById('costs-table');
+  const empty = document.getElementById('costs-empty');
+  if (!filtered.length){tbody.innerHTML='';empty.classList.remove('hidden');}
+  else{
+    empty.classList.add('hidden');
+    tbody.innerHTML = filtered.map(c=>`
+      <tr>
+        <td>${c.date||'-'}</td>
+        <td><span class="badge ${c.type==='income'?'badge-green':'badge-amber'}">${c.category||c.type}</span></td>
+        <td>${c.description||'-'}</td>
+        <td style="font-weight:700;color:${c.type==='income'?'#2e7d32':'#111827'}">${c.type==='income'?'+':''}${formatMK(c.amount)}</td>
+        <td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="edit('${c.id}')"><i class="ti ti-edit"></i></button><button class="btn btn-danger btn-sm" onclick="del('${c.id}')"><i class="ti ti-trash"></i></button></div></td>
+      </tr>`).join('');
+  }
+}
+
+function openModal(id) {
+  editId=id||null;
+  document.getElementById('cost-modal-title').textContent = editId?'Edit Entry':'Add Expense / Income';
+  if (!editId){['c-date','c-type','c-cat','c-desc','c-amount','c-crop'].forEach(i=>document.getElementById(i).value=i==='c-date'?new Date().toISOString().split('T')[0]:i==='c-type'?'expense':'');}
+  else{const c=getUserData('costs').find(x=>x.id===editId);if(c){document.getElementById('c-date').value=c.date;document.getElementById('c-type').value=c.type;document.getElementById('c-cat').value=c.category;document.getElementById('c-desc').value=c.description;document.getElementById('c-amount').value=c.amount;document.getElementById('c-crop').value=c.crop||'';}}
+  document.getElementById('cost-modal').classList.remove('hidden');
+}
+function closeModal(){document.getElementById('cost-modal').classList.add('hidden');editId=null;}
+function saveCost(){
+  const date=document.getElementById('c-date').value,type=document.getElementById('c-type').value,category=document.getElementById('c-cat').value,description=document.getElementById('c-desc').value,amount=Number(document.getElementById('c-amount').value);
+  if(!date||!category||!description||!amount){toast('Please fill all required fields.','error');return;}
+  const entry={id:editId||'c_'+Date.now(),date,type,category,description,amount,crop:document.getElementById('c-crop').value};
+  let costs=getUserData('costs');
+  if(editId){costs=costs.map(c=>c.id===editId?entry:c);toast('Entry updated!');}
+  else{costs.push(entry);toast('Expense saved! ✓');}
+  saveUserData('costs',costs);closeModal();render();
+}
+function edit(id){openModal(id);}
+function del(id){if(!confirm('Delete this entry?'))return;saveUserData('costs',getUserData('costs').filter(c=>c.id!==id));toast('Deleted.','warning');render();}
+function toggleSidebar(){document.querySelector('.sidebar').classList.toggle('open');document.querySelector('.sidebar-overlay').classList.toggle('open');}
+function closeSidebar(){document.querySelector('.sidebar').classList.remove('open');document.querySelector('.sidebar-overlay').classList.remove('open');}
+render();
+</script>
+</body>
+</html>

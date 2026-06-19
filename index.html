@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farm Yanga — Smart Farming for Malawi</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+<style>
+/* ── Landing page styles ── */
+.landing { display:flex; flex-direction:column; min-height:100vh; background:#fff; }
+
+/* NAV */
+.lnav { display:flex; align-items:center; justify-content:space-between; padding:0 40px; height:68px; background:#fff; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:200; }
+.lnav-brand { display:flex; align-items:center; gap:12px; }
+.lnav-icon { width:40px; height:40px; background:var(--green-bright); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; }
+.lnav-name { font-size:19px; font-weight:700; }
+.lnav-tag { font-size:11px; color:var(--text-secondary); }
+.lnav-links { display:flex; align-items:center; gap:8px; }
+.lnav-link { font-size:13px; font-weight:600; color:var(--text-secondary); padding:7px 14px; border-radius:8px; cursor:pointer; text-decoration:none; transition:all 0.15s; }
+.lnav-link:hover { background:var(--green-light); color:var(--green-mid); }
+.hamburger-land { display:none; background:none; border:none; font-size:24px; cursor:pointer; color:var(--text-primary); }
+
+/* HERO */
+.hero { display:grid; grid-template-columns:1fr 1fr; min-height:calc(100vh - 68px); }
+.hero-left { background:var(--green-dark); display:flex; flex-direction:column; justify-content:center; padding:70px 60px; position:relative; overflow:hidden; }
+.hero-left::before { content:''; position:absolute; top:-120px; right:-120px; width:400px; height:400px; background:rgba(76,175,80,0.1); border-radius:50%; }
+.hero-left::after { content:''; position:absolute; bottom:-90px; left:-90px; width:280px; height:280px; background:rgba(76,175,80,0.07); border-radius:50%; }
+.hero-content { position:relative; z-index:1; }
+.hero-badge { display:inline-flex; align-items:center; gap:7px; background:rgba(76,175,80,0.2); border:1px solid rgba(76,175,80,0.3); color:var(--green-bright); border-radius:20px; padding:5px 14px; font-size:12px; font-weight:600; margin-bottom:24px; }
+.hero-headline { font-family:'Lora',serif; font-size:50px; font-weight:600; color:#fff; line-height:1.15; margin-bottom:16px; }
+.hero-headline span { color:var(--green-bright); }
+.hero-sub { font-size:15px; color:rgba(255,255,255,0.62); line-height:1.75; max-width:400px; margin-bottom:36px; }
+.hero-ctas { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:50px; }
+.hero-stats { display:flex; gap:30px; }
+.hero-stat { }
+.hero-stat-val { font-size:22px; font-weight:700; color:#fff; }
+.hero-stat-lbl { font-size:11px; color:rgba(255,255,255,0.45); margin-top:2px; }
+.hero-right { background:var(--bg); display:flex; align-items:center; justify-content:center; padding:40px; }
+
+/* APP PREVIEW CARD */
+.app-preview { background:#fff; border:1px solid var(--border); border-radius:18px; padding:0; overflow:hidden; width:100%; max-width:440px; box-shadow:0 20px 60px rgba(0,0,0,0.12); }
+.preview-topbar { background:var(--green-dark); padding:12px 16px; display:flex; align-items:center; gap:10px; }
+.preview-dot { width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,0.2); }
+.preview-title { font-size:13px; font-weight:600; color:#fff; margin-left:4px; }
+.preview-body { padding:16px; }
+.preview-weather { background:linear-gradient(135deg,var(--green-dark),#2e7d32); border-radius:12px; padding:14px 16px; color:#fff; margin-bottom:12px; display:flex; align-items:center; gap:14px; }
+.preview-temp { font-size:28px; font-weight:700; }
+.preview-desc { font-size:12px; color:rgba(255,255,255,0.7); margin-top:2px; }
+.preview-advice { background:rgba(255,255,255,0.12); border-radius:7px; padding:6px 10px; font-size:11px; color:rgba(255,255,255,0.85); margin-top:8px; }
+.preview-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.preview-stat { background:var(--bg); border-radius:9px; padding:10px 12px; }
+.preview-stat-lbl { font-size:10px; color:var(--text-secondary); font-weight:600; margin-bottom:3px; }
+.preview-stat-val { font-size:16px; font-weight:700; }
+.preview-section-title { font-size:12px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:5px; color:var(--text-primary); }
+.preview-price-row { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border); }
+.preview-price-row:last-child { border-bottom:none; }
+.preview-price-name { font-size:12px; font-weight:600; display:flex; align-items:center; gap:7px; }
+.preview-price-val { font-size:12px; font-weight:700; color:var(--green-mid); }
+.preview-price-chg { font-size:10px; color:var(--green-mid); }
+
+/* FEATURES */
+.features-section { padding:80px 60px; background:#fff; }
+.section-label { font-size:12px; font-weight:700; color:var(--green-mid); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; }
+.section-headline { font-family:'Lora',serif; font-size:36px; font-weight:600; line-height:1.25; margin-bottom:14px; }
+.section-sub { font-size:15px; color:var(--text-secondary); line-height:1.7; max-width:520px; margin-bottom:48px; }
+.features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.feature-card { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; transition:all 0.2s; text-decoration:none; color:inherit; display:block; cursor:pointer; }
+.feature-card:hover { border-color:var(--green-bright); background:var(--green-pale); transform:translateY(-3px); box-shadow:var(--shadow); }
+.feature-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:14px; font-size:20px; }
+.feature-icon.green { background:var(--green-light); color:var(--green-mid); }
+.feature-icon.amber { background:var(--amber-light); color:#92400e; }
+.feature-icon.blue { background:var(--blue-light); color:var(--blue); }
+.feature-title { font-size:14px; font-weight:700; margin-bottom:6px; }
+.feature-desc { font-size:13px; color:var(--text-secondary); line-height:1.55; }
+.feature-link { font-size:12px; font-weight:700; color:var(--green-mid); margin-top:10px; display:flex; align-items:center; gap:4px; }
+
+/* HOW IT WORKS */
+.how-section { padding:80px 60px; background:var(--bg); }
+.steps { display:flex; gap:0; position:relative; margin-top:48px; }
+.steps::before { content:''; position:absolute; top:32px; left:calc(16.6%); right:calc(16.6%); height:2px; background:var(--green-light); }
+.step { flex:1; text-align:center; padding:0 16px; position:relative; z-index:1; }
+.step-num { width:64px; height:64px; border-radius:50%; background:var(--green-mid); color:#fff; font-size:22px; font-weight:700; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; border:4px solid #fff; box-shadow:0 0 0 2px var(--green-bright); }
+.step-title { font-size:14px; font-weight:700; margin-bottom:6px; }
+.step-desc { font-size:13px; color:var(--text-secondary); line-height:1.55; }
+
+/* PAGES NAV SECTION */
+.pages-section { padding:80px 60px; background:#fff; }
+.pages-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:40px; }
+.page-card { border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:20px 16px; text-align:center; text-decoration:none; color:inherit; transition:all 0.18s; background:#fff; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.page-card:hover { border-color:var(--green-bright); background:var(--green-pale); transform:translateY(-3px); box-shadow:var(--shadow); }
+.page-card-icon { width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:24px; }
+.page-card-name { font-size:13px; font-weight:700; }
+.page-card-desc { font-size:11px; color:var(--text-secondary); line-height:1.45; }
+
+/* CTA SECTION */
+.cta-section { padding:80px 60px; background:var(--green-dark); text-align:center; position:relative; overflow:hidden; }
+.cta-section::before { content:''; position:absolute; top:-100px; left:50%; transform:translateX(-50%); width:500px; height:500px; background:rgba(76,175,80,0.08); border-radius:50%; }
+.cta-content { position:relative; z-index:1; }
+.cta-headline { font-family:'Lora',serif; font-size:38px; font-weight:600; color:#fff; margin-bottom:14px; line-height:1.2; }
+.cta-headline span { color:var(--green-bright); }
+.cta-sub { font-size:15px; color:rgba(255,255,255,0.6); margin-bottom:32px; }
+.cta-buttons { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
+/* FOOTER */
+.footer { background:var(--green-dark); border-top:1px solid rgba(255,255,255,0.08); padding:30px 60px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+.footer-brand { display:flex; align-items:center; gap:10px; }
+.footer-brand-icon { width:32px; height:32px; background:var(--green-bright); border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+.footer-brand-name { font-size:14px; font-weight:700; color:#fff; }
+.footer-links { display:flex; gap:18px; }
+.footer-link { font-size:12px; color:rgba(255,255,255,0.45); text-decoration:none; }
+.footer-link:hover { color:rgba(255,255,255,0.8); }
+.footer-copy { font-size:12px; color:rgba(255,255,255,0.3); }
+
+/* MOBILE NAV MENU */
+.mobile-menu { display:none; position:fixed; inset:0; background:#fff; z-index:999; flex-direction:column; padding:24px; }
+.mobile-menu.open { display:flex; }
+.mobile-menu-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; }
+.mobile-menu-links { display:flex; flex-direction:column; gap:4px; }
+.mobile-menu-link { font-size:15px; font-weight:600; color:var(--text-primary); padding:13px 16px; border-radius:10px; text-decoration:none; display:flex; align-items:center; gap:12px; }
+.mobile-menu-link i { font-size:20px; color:var(--green-mid); width:24px; }
+.mobile-menu-link:hover { background:var(--green-light); }
+.mobile-menu-divider { height:1px; background:var(--border); margin:12px 0; }
+.mobile-menu-actions { margin-top:auto; display:flex; flex-direction:column; gap:10px; }
+
+/* RESPONSIVE */
+@media (max-width:960px) {
+  .hero { grid-template-columns:1fr; }
+  .hero-left { padding:50px 32px; min-height:60vh; }
+  .hero-headline { font-size:38px; }
+  .hero-right { display:none; }
+  .features-grid { grid-template-columns:1fr 1fr; }
+  .pages-grid { grid-template-columns:repeat(2,1fr); }
+  .steps { flex-wrap:wrap; }
+  .steps::before { display:none; }
+  .step { flex:1 1 140px; }
+  .features-section,.how-section,.pages-section,.cta-section { padding:56px 32px; }
+  .lnav { padding:0 20px; }
+  .lnav-links { display:none; }
+  .hamburger-land { display:block; }
+  .footer { padding:24px 24px; }
+}
+@media (max-width:600px) {
+  .features-grid { grid-template-columns:1fr; }
+  .pages-grid { grid-template-columns:1fr 1fr; }
+  .hero-headline { font-size:30px; }
+  .section-headline { font-size:26px; }
+  .cta-headline { font-size:26px; }
+  .features-section,.how-section,.pages-section,.cta-section { padding:40px 20px; }
+  .hero-left { padding:40px 24px; }
+  .hero-stats { gap:20px; }
+}
+</style>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobile-menu">
+  <div class="mobile-menu-header">
+    <div class="lnav-brand">
+      <div class="lnav-icon">🌱</div>
+      <div><div class="lnav-name">Farm Yanga</div></div>
+    </div>
+    <button style="background:none;border:none;font-size:26px;cursor:pointer" onclick="closeMobileMenu()"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="mobile-menu-links">
+    <a href="#features" class="mobile-menu-link" onclick="closeMobileMenu()"><i class="ti ti-sparkles"></i> Features</a>
+    <a href="#how" class="mobile-menu-link" onclick="closeMobileMenu()"><i class="ti ti-route"></i> How It Works</a>
+    <a href="#pages" class="mobile-menu-link" onclick="closeMobileMenu()"><i class="ti ti-layout-grid"></i> All Pages</a>
+    <div class="mobile-menu-divider"></div>
+    <a href="pages/dashboard.html" class="mobile-menu-link" id="mm-dashboard" style="display:none"><i class="ti ti-layout-dashboard"></i> My Dashboard</a>
+    <a href="pages/activities.html" class="mobile-menu-link" id="mm-activities" style="display:none"><i class="ti ti-notes"></i> Farm Activities</a>
+    <a href="pages/calendar.html" class="mobile-menu-link" id="mm-calendar" style="display:none"><i class="ti ti-calendar"></i> Calendar</a>
+    <a href="pages/ai.html" class="mobile-menu-link" id="mm-ai" style="display:none"><i class="ti ti-message-chatbot"></i> Yanga AI</a>
+  </div>
+  <div class="mobile-menu-actions">
+    <a href="pages/signup.html" class="btn btn-outline btn-block">Create Free Account</a>
+    <a href="#login-section" class="btn btn-primary btn-block" onclick="closeMobileMenu()"><i class="ti ti-login"></i> Sign In</a>
+  </div>
+</div>
+
+<div class="landing">
+  <!-- NAV -->
+  <nav class="lnav">
+    <div class="lnav-brand">
+      <div class="lnav-icon">🌱</div>
+      <div><div class="lnav-name">Farm Yanga</div><div class="lnav-tag">Smart Farming · Malawi</div></div>
+    </div>
+    <div class="lnav-links">
+      <a href="#features" class="lnav-link">Features</a>
+      <a href="#how" class="lnav-link">How It Works</a>
+      <a href="#pages" class="lnav-link">All Pages</a>
+      <div id="nav-logged-out" style="display:flex;align-items:center;gap:8px">
+        <a href="pages/signup.html" class="lnav-link">Create Account</a>
+        <a href="#login-section" class="btn btn-primary btn-sm"><i class="ti ti-login"></i> Sign In</a>
+      </div>
+      <div id="nav-logged-in" style="display:none;align-items:center;gap:8px">
+        <a href="pages/dashboard.html" class="btn btn-primary btn-sm"><i class="ti ti-layout-dashboard"></i> Go to Dashboard</a>
+        <button onclick="doLogout()" class="btn btn-ghost btn-sm"><i class="ti ti-logout"></i> Log Out</button>
+      </div>
+    </div>
+    <button class="hamburger-land" onclick="openMobileMenu()"><i class="ti ti-menu-2"></i></button>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-left">
+      <div class="hero-content">
+        <div class="hero-badge"><i class="ti ti-plant-2"></i> Built for Malawian Farmers</div>
+        <h1 class="hero-headline">Grow smarter,<br>harvest <span>better</span>.</h1>
+        <p class="hero-sub">Farm Yanga gives every farmer in Malawi the tools to plan crops, track costs, monitor weather, and sell at the right time — all in one free app.</p>
+        <div class="hero-ctas" id="hero-ctas-loggedout">
+          <a href="pages/signup.html" class="btn btn-lg" style="background:#4caf50;color:#fff;"><i class="ti ti-user-plus"></i> Start Free — Sign Up</a>
+          <a href="#login-section" class="btn btn-lg" style="background:rgba(255,255,255,0.12);color:#fff;border:1.5px solid rgba(255,255,255,0.25)"><i class="ti ti-login"></i> Sign In</a>
+        </div>
+        <div class="hero-ctas hidden" id="hero-ctas-loggedin">
+          <a href="pages/dashboard.html" class="btn btn-lg" style="background:#4caf50;color:#fff;"><i class="ti ti-layout-dashboard"></i> Open My Dashboard</a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><div class="hero-stat-val">9 🗂️</div><div class="hero-stat-lbl">App Pages</div></div>
+          <div class="hero-stat"><div class="hero-stat-val">16 🌱</div><div class="hero-stat-lbl">Malawi Crops</div></div>
+          <div class="hero-stat"><div class="hero-stat-val">100% 🔒</div><div class="hero-stat-lbl">Private Data</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- App Preview -->
+    <div class="hero-right">
+      <div class="app-preview">
+        <div class="preview-topbar">
+          <div class="preview-dot"></div><div class="preview-dot"></div><div class="preview-dot"></div>
+          <div class="preview-title">Farm Yanga · Dashboard</div>
+        </div>
+        <div class="preview-body">
+          <div class="preview-weather">
+            <div style="font-size:40px">⛅</div>
+            <div style="flex:1">
+              <div class="preview-temp">24°C</div>
+              <div class="preview-desc">Partly Cloudy · Lilongwe</div>
+              <div class="preview-advice">🌱 Good time for top-dressing fertilizer on Saturday</div>
+            </div>
+          </div>
+          <div class="preview-stats">
+            <div class="preview-stat"><div class="preview-stat-lbl">🌽 Active Crops</div><div class="preview-stat-val">4 crops</div></div>
+            <div class="preview-stat"><div class="preview-stat-lbl">💰 Costs YTD</div><div class="preview-stat-val">MK 85k</div></div>
+            <div class="preview-stat"><div class="preview-stat-lbl">📋 Activities</div><div class="preview-stat-val">23 logged</div></div>
+            <div class="preview-stat"><div class="preview-stat-lbl">🚜 Equipment</div><div class="preview-stat-val">5 items</div></div>
+          </div>
+          <div class="preview-section-title"><i class="ti ti-chart-bar" style="color:#4caf50"></i> Market Prices Today</div>
+          <div class="preview-price-row"><div class="preview-price-name">🌽 Maize</div><div><div class="preview-price-val">MK 18,000/bag</div><div class="preview-price-chg">▲ 5.2%</div></div></div>
+          <div class="preview-price-row"><div class="preview-price-name">🫘 Soybeans</div><div><div class="preview-price-val">MK 42,000/bag</div><div class="preview-price-chg">▲ 12.1%</div></div></div>
+          <div class="preview-price-row"><div class="preview-price-name">🥜 Groundnuts</div><div><div class="preview-price-val">MK 95,000/bag</div><div class="preview-price-chg" style="color:#dc2626">▼ 3.4%</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ALL PAGES NAV ── -->
+  <section class="pages-section" id="pages">
+    <div class="section-label">Navigate the App</div>
+    <h2 class="section-headline">Everything you need,<br>on one platform</h2>
+    <p class="section-sub">Farm Yanga is split into focused pages — each one does one thing well. Click any page below to jump straight in.</p>
+    <div class="pages-grid">
+      <a href="pages/dashboard.html" class="page-card">
+        <div class="page-card-icon" style="background:#e8f5e9;color:#2e7d32"><i class="ti ti-layout-dashboard"></i></div>
+        <div class="page-card-name">Dashboard</div>
+        <div class="page-card-desc">Weather, market prices, crop summary and recent activity at a glance</div>
+      </a>
+      <a href="pages/crops.html" class="page-card">
+        <div class="page-card-icon" style="background:#e8f5e9;color:#2e7d32"><i class="ti ti-plant"></i></div>
+        <div class="page-card-name">My Crops</div>
+        <div class="page-card-desc">Select and manage all crops you are growing this season with care tips</div>
+      </a>
+      <a href="pages/activities.html" class="page-card">
+        <div class="page-card-icon" style="background:#fef3c7;color:#92400e"><i class="ti ti-notes"></i></div>
+        <div class="page-card-name">Farm Activities</div>
+        <div class="page-card-desc">Log every activity — planting, weeding, spraying, harvesting and more</div>
+      </a>
+      <a href="pages/costs.html" class="page-card">
+        <div class="page-card-icon" style="background:#fef3c7;color:#92400e"><i class="ti ti-coin"></i></div>
+        <div class="page-card-name">Costs & Budget</div>
+        <div class="page-card-desc">Track all farm expenses and income to see your profit for the year</div>
+      </a>
+      <a href="pages/equipment.html" class="page-card">
+        <div class="page-card-icon" style="background:#eff6ff;color:#1d6fb8"><i class="ti ti-tractor"></i></div>
+        <div class="page-card-name">Equipment</div>
+        <div class="page-card-desc">Keep a register of all tools and machinery with condition and value</div>
+      </a>
+      <a href="pages/calendar.html" class="page-card">
+        <div class="page-card-icon" style="background:#eff6ff;color:#1d6fb8"><i class="ti ti-calendar"></i></div>
+        <div class="page-card-name">Calendar</div>
+        <div class="page-card-desc">Plan and track daily farm events, reminders and seasonal tasks</div>
+      </a>
+      <a href="pages/notes.html" class="page-card">
+        <div class="page-card-icon" style="background:#f3f4f6;color:#374151"><i class="ti ti-notebook"></i></div>
+        <div class="page-card-name">Farm Notes</div>
+        <div class="page-card-desc">Write and save important observations, ideas and farm records</div>
+      </a>
+      <a href="pages/calculator.html" class="page-card">
+        <div class="page-card-icon" style="background:#e8f5e9;color:#2e7d32"><i class="ti ti-calculator"></i></div>
+        <div class="page-card-name">Input Calculator</div>
+        <div class="page-card-desc">Calculate the right amount of seed, fertilizer and chemicals for your land</div>
+      </a>
+      <a href="pages/market.html" class="page-card">
+        <div class="page-card-icon" style="background:#fef3c7;color:#92400e"><i class="ti ti-chart-bar"></i></div>
+        <div class="page-card-name">Market Prices</div>
+        <div class="page-card-desc">Today's Malawi farm produce prices and estimated harvest earnings</div>
+      </a>
+      <a href="pages/ai.html" class="page-card" style="border-color:var(--green-bright);background:var(--green-pale)">
+        <div class="page-card-icon" style="background:#1a3d1f;color:#4caf50"><i class="ti ti-message-chatbot"></i></div>
+        <div class="page-card-name">Yanga AI ✨</div>
+        <div class="page-card-desc">Ask farming questions in English or Chichewa — get instant expert advice</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ── FEATURES ── -->
+  <section class="features-section" id="features">
+    <div class="section-label">What Farm Yanga Does</div>
+    <h2 class="section-headline">Every tool a Malawian<br>farmer needs</h2>
+    <p class="section-sub">From the first day of planting to selling at the market — Farm Yanga supports you at every step of the farming season.</p>
+    <div class="features-grid">
+      <div class="feature-card" onclick="window.location.href='pages/dashboard.html'">
+        <div class="feature-icon green"><i class="ti ti-cloud-rain"></i></div>
+        <div class="feature-title">Live Weather + Advice</div>
+        <div class="feature-desc">Get real-time weather for your district and personalised planting advice based on Malawi's current season.</div>
+        <div class="feature-link">Open Dashboard <i class="ti ti-arrow-right"></i></div>
+      </div>
+      <div class="feature-card" onclick="window.location.href='pages/market.html'">
+        <div class="feature-icon amber"><i class="ti ti-chart-bar"></i></div>
+        <div class="feature-title">Market Prices</div>
+        <div class="feature-desc">See today's prices for maize, soybeans, groundnuts, tobacco, vegetables and more — updated for Malawi markets.</div>
+        <div class="feature-link">View Prices <i class="ti ti-arrow-right"></i></div>
+      </div>
+      <div class="feature-card" onclick="window.location.href='pages/ai.html'">
+        <div class="feature-icon green"><i class="ti ti-message-chatbot"></i></div>
+        <div class="feature-title">AI in English & Chichewa</div>
+        <div class="feature-desc">Ask Yanga AI anything about farming in English or Chichewa. Get crop advice, pest help, and more — instantly.</div>
+        <div class="feature-link">Chat with Yanga <i class="ti ti-arrow-right"></i></div>
+      </div>
+      <div class="feature-card" onclick="window.location.href='pages/activities.html'">
+        <div class="feature-icon blue"><i class="ti ti-notes"></i></div>
+        <div class="feature-title">Activity Log</div>
+        <div class="feature-desc">Record every farm task with date, cost, and crop. Build a complete history of your farm season.</div>
+        <div class="feature-link">Log Activities <i class="ti ti-arrow-right"></i></div>
+      </div>
+      <div class="feature-card" onclick="window.location.href='pages/calculator.html'">
+        <div class="feature-icon amber"><i class="ti ti-calculator"></i></div>
+        <div class="feature-title">Input Calculator</div>
+        <div class="feature-desc">Enter your land size and crop, and get the exact quantities of seed, fertilizer, and chemicals you need.</div>
+        <div class="feature-link">Calculate Inputs <i class="ti ti-arrow-right"></i></div>
+      </div>
+      <div class="feature-card" onclick="window.location.href='pages/calendar.html'">
+        <div class="feature-icon green"><i class="ti ti-calendar"></i></div>
+        <div class="feature-title">Farm Calendar</div>
+        <div class="feature-desc">Plan your whole farming year. Set reminders for planting, spraying, market days and more.</div>
+        <div class="feature-link">Open Calendar <i class="ti ti-arrow-right"></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HOW IT WORKS ── -->
+  <section class="how-section" id="how">
+    <div style="text-align:center">
+      <div class="section-label" style="display:inline-block">Getting Started</div>
+      <h2 class="section-headline">Ready in 3 simple steps</h2>
+      <p class="section-sub" style="margin:0 auto 0">No training needed. If you can use a phone, you can use Farm Yanga.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">Create Your Account</div>
+        <div class="step-desc">Sign up free with your name, email, and district. Choose the crops you grow.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-title">Set Up Your Farm</div>
+        <div class="step-desc">Add your crops, farm size, and equipment. The app personalises advice for your farm.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">Log and Learn</div>
+        <div class="step-desc">Record activities and costs every day. Watch your data help you farm better each season.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── LOGIN SECTION ── -->
+  <section class="features-section" id="login-section" style="background:var(--bg)">
+    <div style="max-width:440px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:28px">
+        <div class="section-label" style="display:inline-block">Already Have an Account</div>
+        <h2 style="font-size:26px;font-weight:700;margin-top:8px">Sign in to Farm Yanga</h2>
+      </div>
+      <div class="card" style="padding:28px">
+        <div class="form-group"><label>Email Address</label><input type="email" id="li-email" placeholder="you@example.com" autocomplete="email"></div>
+        <div class="form-group"><label>Password</label>
+          <div class="pw-wrap">
+            <input type="password" id="li-pw" placeholder="Your password" autocomplete="current-password">
+            <button class="pw-eye" type="button" onclick="togglePw()"><i class="ti ti-eye"></i></button>
+          </div>
+        </div>
+        <div id="li-error" style="color:#dc2626;font-size:13px;margin-bottom:10px;display:none"></div>
+        <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()"><i class="ti ti-login"></i> Sign In</button>
+        <div style="text-align:center;margin-top:14px;font-size:13px;color:var(--text-secondary)">
+          Don't have an account? <a href="pages/signup.html" style="color:#2e7d32;font-weight:600">Sign up free →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA ── -->
+  <section class="cta-section">
+    <div class="cta-content">
+      <h2 class="cta-headline">Start your best<br><span>farming season</span> today.</h2>
+      <p class="cta-sub">Free to use. Your data stays private. Works on phone and computer.</p>
+      <div class="cta-buttons">
+        <a href="pages/signup.html" class="btn btn-lg" style="background:#4caf50;color:#fff"><i class="ti ti-user-plus"></i> Create Free Account</a>
+        <a href="pages/ai.html" class="btn btn-lg" style="background:rgba(255,255,255,0.12);color:#fff;border:1.5px solid rgba(255,255,255,0.25)"><i class="ti ti-message-chatbot"></i> Try Yanga AI</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <div class="footer-brand-icon">🌱</div>
+      <div class="footer-brand-name">Farm Yanga</div>
+    </div>
+    <div class="footer-links">
+      <a href="pages/dashboard.html" class="footer-link">Dashboard</a>
+      <a href="pages/crops.html" class="footer-link">Crops</a>
+      <a href="pages/activities.html" class="footer-link">Activities</a>
+      <a href="pages/costs.html" class="footer-link">Costs</a>
+      <a href="pages/calendar.html" class="footer-link">Calendar</a>
+      <a href="pages/notes.html" class="footer-link">Notes</a>
+      <a href="pages/calculator.html" class="footer-link">Calculator</a>
+      <a href="pages/market.html" class="footer-link">Market</a>
+      <a href="pages/ai.html" class="footer-link">Yanga AI</a>
+    </div>
+    <div class="footer-copy">© 2025 Farm Yanga · Made for Malawi 🇲🇼</div>
+  </footer>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+// Check login state and update UI
+function updateAuthUI() {
+  const user = Auth.currentUser();
+  if (user) {
+    document.getElementById('nav-logged-out').style.display = 'none';
+    document.getElementById('nav-logged-in').style.display = 'flex';
+    document.getElementById('hero-ctas-loggedout').classList.add('hidden');
+    document.getElementById('hero-ctas-loggedin').classList.remove('hidden');
+    // Show logged-in mobile menu links
+    ['mm-dashboard','mm-activities','mm-calendar','mm-ai'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'flex';
+    });
+    // Update hero headline personalisation
+    const greet = document.querySelector('.hero-badge');
+    if (greet) greet.innerHTML = `<i class="ti ti-plant-2"></i> Welcome back, ${user.name.split(' ')[0]}!`;
+  }
+}
+
+function doLogout() {
+  if (confirm('Log out of Farm Yanga?')) { Auth.logout(); }
+}
+
+function togglePw() {
+  const inp = document.getElementById('li-pw');
+  const btn = inp.nextElementSibling;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.innerHTML = inp.type === 'password' ? '<i class="ti ti-eye"></i>' : '<i class="ti ti-eye-off"></i>';
+}
+
+function doLogin() {
+  const email = document.getElementById('li-email').value.trim();
+  const pw = document.getElementById('li-pw').value;
+  const errEl = document.getElementById('li-error');
+  errEl.style.display = 'none';
+  if (!email || !pw) { errEl.textContent = 'Please enter your email and password.'; errEl.style.display = 'block'; return; }
+  const result = Auth.login(email, pw);
+  if (result.ok) {
+    toast('Signing you in... 🌱');
+    setTimeout(() => window.location.href = 'pages/dashboard.html', 700);
+  } else {
+    errEl.textContent = result.err;
+    errEl.style.display = 'block';
+  }
+}
+
+// Mobile menu
+function openMobileMenu() { document.getElementById('mobile-menu').classList.add('open'); document.body.style.overflow = 'hidden'; }
+function closeMobileMenu() { document.getElementById('mobile-menu').classList.remove('open'); document.body.style.overflow = ''; }
+
+// Smooth scroll for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const id = a.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+});
+
+// Enter key on login form
+document.getElementById('li-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('li-email').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('li-pw').focus(); });
+
+updateAuthUI();
+</script>
+</body>
+</html>
